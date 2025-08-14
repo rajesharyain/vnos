@@ -1,0 +1,72 @@
+[
+  {
+    "id": "facebook",
+    "name": "Facebook",
+    "description": "Social media platform OTP",
+    "price": "$0.50",
+    "icon": "📘"
+  },
+  {
+    "id": "google",
+    "name": "Google",
+    "description": "Google services OTP",
+    "price": "$0.75",
+    "icon": "🔍"
+  },
+  {
+    "id": "virtual21",
+    "name": "Virtual 21",
+    "description": "General virtual number service",
+    "price": "$0.30",
+    "icon": "📱"
+  },
+  {
+    "id": "virtual4",
+    "name": "Virtual 4",
+    "description": "Alternative virtual service",
+    "price": "$0.40",
+    "icon": "📞"
+  },
+  {
+    "id": "virtual58",
+    "name": "Virtual 58",
+    "description": "Premium virtual service",
+    "price": "$0.60",
+    "icon": "⭐"
+  },
+  {
+    "id": "jiomart",
+    "name": "Jio Mart",
+    "description": "Indian e-commerce OTP",
+    "price": "₹2",
+    "icon": "🛒"
+  },
+  {
+    "id": "zomato",
+    "name": "Zomato",
+    "description": "Food delivery OTP",
+    "price": "₹1.50",
+    "icon": "🍕"
+  },
+  {
+    "id": "swiggy",
+    "name": "Swiggy",
+    "description": "Food delivery OTP",
+    "price": "₹1.50",
+    "icon": "🛵"
+  },
+  {
+    "id": "ola",
+    "name": "Ola",
+    "description": "Ride-hailing OTP",
+    "price": "₹1",
+    "icon": "🚗"
+  },
+  {
+    "id": "uber",
+    "name": "Uber",
+    "description": "Ride-hailing OTP",
+    "price": "₹1",
+    "icon": "🚙"
+  }
+] 

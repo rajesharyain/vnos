@@ -1,17 +1,21 @@
-export interface VirtualNumber {
-  id: string;
-  number: string;
-  createdAt: Date;
-  expiresAt: Date;
-  isActive: boolean;
-  otps: OTP[];
-}
-
 export interface OTP {
   id: string;
   code: string;
   receivedAt: Date;
-  isUsed: boolean;
+  isUsed?: boolean;
+  source?: string; // Add source property for tracking where OTP came from
+}
+
+export interface VirtualNumber {
+  id: string;
+  number: string;
+  provider: string;
+  country: string;
+  product: string;
+  otps: OTP[];
+  createdAt: Date;
+  expiresAt: Date;
+  status: 'active' | 'expired' | 'cancelled';
 }
 
 export interface CreateVirtualNumberResponse {
@@ -38,8 +42,9 @@ export interface ResendOTPResponse {
 
 // Mock API provider interface - replace with real provider later
 export interface VirtualNumberProvider {
-  requestNumber(): Promise<string>;
-  checkForOTP(number: string): Promise<OTP[]>;
-  cancelNumber(number: string): Promise<boolean>;
-  resendOTP(number: string): Promise<boolean>;
+  requestNumber(productId?: string, countryId?: string, operatorId?: string): Promise<string>;
+  checkOtps(phoneNumber: string): Promise<OTP[]>;
+  cancelNumber(phoneNumber: string): Promise<boolean>;
+  resendOtp(phoneNumber: string): Promise<boolean>;
+  getAvailableProducts(countryId: string): Promise<Array<{ id: string; name: string; cost: number; count: number }>>;
 } 

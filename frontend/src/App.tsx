@@ -5,201 +5,120 @@ import { socketService } from './services/socket';
 import { VirtualNumberSlot } from './components/VirtualNumberSlot';
 import { ProviderSelector } from './components/ProviderSelector';
 import { Phone, Plus, Wifi, WifiOff, AlertCircle, CheckCircle, Copy, Clock, MessageCircle } from 'lucide-react';
+import productsData from './data/products.json';
 
 function App() {
   const [virtualNumbers, setVirtualNumbers] = useState<VirtualNumber[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [selectedProvider, setSelectedProvider] = useState<string>('5sim'); // Default to 5SIM for India
+  const [selectedProvider, setSelectedProvider] = useState<string>('5sim'); // Default to 5SIM for testing
   const [providerError, setProviderError] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<string | null>('facebook'); // Changed to facebook
+  const [selectedCountry, setSelectedCountry] = useState<string>('usa'); // Reverted back to 'usa' as per user feedback
   const [apiProducts, setApiProducts] = useState<Array<{ id: string; name: string; cost: number; count: number }>>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false); // Changed to false since we use hardcoded products
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedOperator, setSelectedOperator] = useState<string | null>('any'); // Default to 'any' operator
+  const [pollingIntervals, setPollingIntervals] = useState<Map<string, NodeJS.Timeout>>(new Map());
 
-  // Filter products based on search query
-  const filteredProducts = apiProducts.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Mock operators data - you can replace this with real data
-  const operatorsData = [
-    { id: 'jio', name: 'Reliance Jio', price: '₹3', selected: false },
-    { id: 'airtel', name: 'Bharti Airtel', price: '₹4', selected: false },
-    { id: 'vodafone', name: 'Vodafone Idea', price: '₹2', selected: false },
-    { id: 'bsnl', name: 'BSNL', price: '₹3', selected: false },
-    { id: 'mtnl', name: 'MTNL', price: '₹2', selected: false },
-    { id: 'idea', name: 'Idea Cellular', price: '₹3', selected: false }
-  ];
-
-  // Product-specific operator configurations
+  // Get operators for a specific product (simplified for testing)
   const getProductOperators = (productId: string) => {
-    const baseOperators = [...operatorsData];
+    // For USA testing, return common operators
+    if (productId === 'facebook' || productId === 'google') {
+      return [
+        { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '$0.50', selected: false },
+        { id: 'verizon', name: 'Verizon', description: 'Verizon Wireless', price: '$0.60', selected: false },
+        { id: 'att', name: 'AT&T', description: 'AT&T Mobility', price: '$0.55', selected: false },
+        { id: 'tmobile', name: 'T-Mobile', description: 'T-Mobile US', price: '$0.50', selected: false },
+        { id: 'sprint', name: 'Sprint', description: 'Sprint Corporation', price: '$0.45', selected: false }
+      ];
+    }
     
-    switch (productId) {
-      case 'zomato':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'jio' ? '₹2' : op.id === 'airtel' ? '₹3' : '₹2',
-          selected: false
-        }));
-      case 'swiggy':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'vodafone' ? '₹2' : op.id === 'mtnl' ? '₹1' : '₹3',
-          selected: false
-        }));
-      case 'ola':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'bsnl' ? '₹2' : op.id === 'idea' ? '₹2' : '₹3',
-          selected: false
-        }));
-      case 'uber':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'jio' ? '₹3' : op.id === 'airtel' ? '₹4' : '₹2',
-          selected: false
-        }));
-      case 'banking':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'jio' ? '₹5' : op.id === 'airtel' ? '₹6' : '₹4',
-          selected: false
-        }));
-      case 'crypto':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'jio' ? '₹6' : op.id === 'airtel' ? '₹7' : '₹5',
-          selected: false
-        }));
-      case 'gaming':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'vodafone' ? '₹3' : op.id === 'mtnl' ? '₹2' : '₹4',
-          selected: false
-        }));
-      case 'social':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'idea' ? '₹2' : op.id === 'bsnl' ? '₹3' : '₹3',
-          selected: false
-        }));
-      case 'shopping':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'jio' ? '₹1' : op.id === 'airtel' ? '₹2' : '₹2',
-          selected: false
-        }));
-      case 'travel':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'vodafone' ? '₹3' : op.id === 'mtnl' ? '₹2' : '₹4',
-          selected: false
-        }));
-      case 'health':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'jio' ? '₹5' : op.id === 'airtel' ? '₹6' : '₹4',
-          selected: false
-        }));
-      case 'education':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'idea' ? '₹2' : op.id === 'bsnl' ? '₹3' : '₹3',
-          selected: false
-        }));
-      case 'finance':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'jio' ? '₹6' : op.id === 'airtel' ? '₹7' : '₹5',
-          selected: false
-        }));
-      case 'entertainment':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'vodafone' ? '₹3' : op.id === 'mtnl' ? '₹2' : '₹4',
-          selected: false
-        }));
-      case 'utilities':
-        return baseOperators.map(op => ({
-          ...op,
-          price: op.id === 'jio' ? '₹1' : op.id === 'airtel' ? '₹2' : '₹2',
-          selected: false
-        }));
-      default:
-        return baseOperators;
+    // For Indian products, return Indian operators
+    return [
+      { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '₹2', selected: false },
+      { id: 'airtel', name: 'Airtel', description: 'Bharti Airtel', price: '₹3', selected: false },
+      { id: 'jio', name: 'Jio', description: 'Reliance Jio', price: '₹2', selected: false },
+      { id: 'vodafone', name: 'Vodafone', description: 'Vodafone Idea', price: '₹2', selected: false },
+      { id: 'bsnl', name: 'BSNL', description: 'Bharat Sanchar Nigam', price: '₹1', selected: false }
+    ];
+  };
+
+  // Handle country change
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country);
+    setSelectedOperator('any'); // Reset operator to 'any' when country changes
+    
+    // Update operators based on new country
+    if (selectedProduct) {
+      const newOperators = getProductOperators(selectedProduct);
+      setOperators(newOperators);
+    }
+    
+    console.log(`Country changed to: ${country}`);
+  };
+
+  // Get products based on selected country
+  const getProductsForCountry = (country: string) => {
+    if (country === 'usa') {
+      return [
+        { id: 'facebook', name: 'Facebook', description: 'Social media platform OTP', price: '$0.50', icon: '📘' },
+        { id: 'google', name: 'Google', description: 'Google services OTP', price: '$0.75', icon: '🔍' },
+        { id: 'twitter', name: 'Twitter', description: 'Social media OTP', price: '$0.30', icon: '🐦' },
+        { id: 'whatsapp', name: 'WhatsApp', description: 'Messaging OTP', price: '$0.50', icon: '💬' },
+        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', price: '$0.70', icon: '🚗' }
+      ];
+    } else {
+      // India products - based on actual 5SIM availability
+      return [
+        { id: 'zomato', name: 'Zomato', description: 'Food delivery OTP', price: '₹6', icon: '🍕' },
+        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', price: '₹7', icon: '🚗' },
+        { id: 'ola', name: 'Ola', description: 'Ride-hailing OTP', price: '₹6', icon: '🚙' },
+        { id: 'paytm', name: 'Paytm', description: 'Digital payments OTP', price: '₹6', icon: '💳' },
+        { id: 'phonepe', name: 'PhonePe', description: 'Digital payments OTP', price: '₹6', icon: '📱' },
+        { id: 'amazon', name: 'Amazon', description: 'E-commerce OTP', price: '₹6', icon: '📦' },
+        { id: 'flipkart', name: 'Flipkart', description: 'E-commerce OTP', price: '₹6', icon: '🛒' },
+        { id: 'swiggy', name: 'Swiggy', description: 'Food delivery OTP', price: '₹6', icon: '🛵' }
+      ];
     }
   };
 
-  // Load products from 5SIM API
+  // Get current products for selected country
+  const productsData = getProductsForCountry(selectedCountry);
+
+  // Filter products based on search query
+  const filteredProducts = productsData.filter(product =>
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    product.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const [operators, setOperators] = useState(() => getProductOperators('facebook')); // Default to facebook operators
+
+  // Update products and operators when country changes
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        setIsLoadingProducts(true);
-        // Get products for India from 5SIM
-        const products = await ApiService.getProviderProducts('5sim', 'india');
-        console.log('Loaded 5SIM products:', products);
-        setApiProducts(products);
-        
-        // Set first product as default if available
-        if (products.length > 0) {
-          setSelectedProduct(products[0].id);
-          // Update operators based on first product
-          const productOperators = getProductOperators(products[0].id);
-          setOperators([...productOperators]);
-        }
-      } catch (error) {
-        console.error('Failed to load products:', error);
-        // Fallback to mock products if API fails
-        setApiProducts([
-          { id: '1688', name: '1688', cost: 0.1, count: 1 },
-          { id: '17live', name: '17live', cost: 0.1, count: 1 },
-          { id: '1mg', name: '1mg', cost: 0.1, count: 1 },
-          { id: '23red', name: '23red', cost: 0.1, count: 1 },
-          { id: '32red', name: '32red', cost: 0.1, count: 1 },
-          { id: '4fun', name: '4fun', cost: 0.1, count: 1 },
-          { id: '51exch', name: '51exch', cost: 0.1, count: 1 },
-          { id: '51game', name: '51game', cost: 0.1, count: 1 },
-          { id: '777ace', name: '777ace', cost: 0.1, count: 1 },
-          { id: '789jackpotsagent', name: '789jackpotsagent', cost: 0.1, count: 1 }
-        ]);
-        setSelectedProduct('1688');
-      } finally {
-        setIsLoadingProducts(false);
-      }
-    };
-
-    loadProducts();
-  }, []);
-
-  // Mock products data - you can replace this with real data
-  const products = [
-    { id: 'zomato', name: 'Zomato', description: 'Food delivery OTP', price: '₹2', icon: '🍕' },
-    { id: 'swiggy', name: 'Swiggy', description: 'Food delivery OTP', price: '₹3', icon: '🛍️' },
-    { id: 'ola', name: 'Ola', description: 'Ola cab services', price: '₹2', icon: '🚗' },
-    { id: 'uber', name: 'Uber', description: 'Uber cab services', price: '₹3', icon: '🚙' },
-    { id: 'banking', name: 'Banking', description: 'Bank OTP services', price: '₹5', icon: '🏦' },
-    { id: 'crypto', name: 'Crypto', description: 'Cryptocurrency OTP', price: '₹6', icon: '₿' },
-    { id: 'gaming', name: 'Gaming', description: 'Gaming platform OTP', price: '₹4', icon: '🎮' },
-    { id: 'social', name: 'Social', description: 'Social media OTP', price: '₹3', icon: '📱' },
-    { id: 'shopping', name: 'Shopping', description: 'E-commerce OTP', price: '₹2', icon: '🛒' },
-    { id: 'travel', name: 'Travel', description: 'Travel booking OTP', price: '₹4', icon: '✈️' },
-    { id: 'health', name: 'Health', description: 'Healthcare OTP', price: '₹5', icon: '🏥' },
-    { id: 'education', name: 'Education', description: 'Education platform OTP', price: '₹3', icon: '📚' },
-    { id: 'finance', name: 'Finance', description: 'Financial services OTP', price: '₹6', icon: '💰' },
-    { id: 'entertainment', name: 'Entertainment', description: 'Entertainment OTP', price: '₹4', icon: '🎬' },
-    { id: 'utilities', name: 'Utilities', description: 'Utility services OTP', price: '₹2', icon: '⚡' }
-  ];
-
-  const [selectedOperator, setSelectedOperator] = useState<string | null>(null);
+    const newProducts = getProductsForCountry(selectedCountry);
+    setApiProducts(newProducts.map(product => ({
+      id: product.id,
+      name: product.name,
+      cost: parseFloat(product.price.replace(/[^0-9.]/g, '')),
+      count: 1
+    })));
+    
+    // Update operators based on first product
+    if (newProducts.length > 0) {
+      const newOperators = getProductOperators(newProducts[0].id);
+      setOperators(newOperators);
+      setSelectedProduct(newProducts[0].id);
+    }
+    
+    // Set loading to false since products are now loaded
+    setIsLoadingProducts(false);
+  }, [selectedCountry]);
 
   const handleOperatorSelect = (operatorId: string) => {
     setSelectedOperator(operatorId);
     setOperators(prev => prev.map(op => ({ ...op, selected: op.id === operatorId })));
   };
-
-  const [operators, setOperators] = useState(() => getProductOperators('zomato'));
 
   // Debug useEffect to monitor state changes
   useEffect(() => {
@@ -282,8 +201,8 @@ function App() {
   };
 
   const handleRequestNumber = async () => {
-    if (!selectedProvider) {
-      alert('Please select a provider first');
+    if (!selectedProvider || !selectedProduct || !selectedOperator) {
+      alert('Please select a provider, product, and operator first');
       return;
     }
 
@@ -291,30 +210,60 @@ function App() {
     setProviderError(null);
     
     try {
-      console.log(`Requesting number from provider: ${selectedProvider}`);
-      const newNumber = await ApiService.requestNumber();
+      console.log(`Requesting number from provider: ${selectedProvider} for product: ${selectedProduct} with country: ${selectedCountry} and operator: ${selectedOperator}`);
+      
+      // Request virtual number with selected product, country, and operator
+      const newNumber = await ApiService.requestVirtualNumber(selectedProduct, selectedCountry, selectedOperator);
+      
       setVirtualNumbers(prev => [...prev, newNumber]);
-      console.log(`Successfully requested number: ${newNumber.number} from ${selectedProvider}`);
-    } catch (error) {
+      console.log(`Successfully requested number: ${newNumber.number} from ${selectedProvider} for ${selectedProduct} with country ${selectedCountry} and operator ${selectedOperator}`);
+      
+      // Start polling for OTPs
+      startOtpPolling(newNumber.number);
+      
+    } catch (error: any) {
       console.error(`Failed to request number from ${selectedProvider}:`, error);
-      
-      // Log detailed error information
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          provider: selectedProvider
-        });
-      }
-      
-      // Show user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      setProviderError(`Failed to request number from ${selectedProvider}: ${errorMessage}`);
-      
-      // Don't show generic alert, let the error display handle it
+      setProviderError(error.message || 'Failed to request virtual number.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Start polling for OTPs for a specific number
+  const startOtpPolling = (phoneNumber: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        // Check if the number is still active
+        const virtualNumber = virtualNumbers.find(num => num.number === phoneNumber);
+        if (!virtualNumber || virtualNumber.status !== 'active') {
+          clearInterval(pollInterval);
+          return;
+        }
+
+        // Check for new OTPs
+        const otps = await ApiService.checkOtps(phoneNumber);
+        if (otps.length > 0) {
+          // Update the virtual number with new OTPs
+          setVirtualNumbers(prev => 
+            prev.map(num => 
+              num.number === phoneNumber 
+                ? { ...num, otps: [...num.otps, ...otps] }
+                : num
+            )
+          );
+          
+          console.log(`Received OTPs for ${phoneNumber}: ${otps.map(otp => otp.code).join(', ')}`);
+          
+          // Stop polling since we received OTPs
+          clearInterval(pollInterval);
+        }
+      } catch (error) {
+        console.error(`Error polling OTPs for ${phoneNumber}:`, error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    // Store the interval ID for cleanup
+    setPollingIntervals(prev => new Map(prev).set(phoneNumber, pollInterval));
   };
 
   const handleUpdateNumber = (updatedNumber: VirtualNumber) => {
@@ -374,127 +323,141 @@ function App() {
 
       {/* Two Column Layout */}
       <div className="flex max-w-7xl mx-auto">
-        {/* Left Panel - Products Only */}
-        <div className="w-80 bg-gray-800 border-r border-gray-700 min-h-screen p-6">
-          <div className="sticky top-6 space-y-6">
-            {/* SMS Services Only Section */}
-            <div className="bg-gray-700 rounded-lg p-4">
-              <div className="flex items-center space-x-3 mb-2">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <MessageCircle className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-white font-medium">SMS Services Only</h3>
-                  <p className="text-sm text-gray-400">Indian operators & popular platforms</p>
-                </div>
-              </div>
-            </div>
+        {/* Left Panel - Product List */}
+        <div className="w-80 bg-gray-800 p-6 overflow-y-auto">
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              📱 Products for {selectedCountry === 'usa' ? '🇺🇸 USA' : '🇮🇳 India'}
+            </h2>
+            <p className="text-sm text-gray-400 mb-4">
+              {selectedCountry === 'usa' 
+                ? 'Select a product to get a USA virtual number for OTP testing'
+                : 'Select a product to get an Indian virtual number for OTP testing'
+              }
+            </p>
 
-            {/* Products Section */}
-            <div>
-              <h2 className="text-lg font-semibold text-white mb-4">PRODUCTS ({apiProducts.length})</h2>
-              
-              {/* Search Input */}
-              <div className="mb-4">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent pr-10"
-                  />
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                    {searchQuery ? (
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        className="text-gray-400 hover:text-white transition-colors"
-                        title="Clear search"
-                      >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    ) : (
-                      <div className="pointer-events-none">
-                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {searchQuery && (
-                  <div className="mt-2 text-sm text-gray-400">
-                    Showing {filteredProducts.length} of {apiProducts.length} products
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-                {isLoadingProducts ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-2"></div>
-                    <p className="text-gray-400 text-sm">Loading products...</p>
-                  </div>
-                ) : filteredProducts.length > 0 ? (
-                  filteredProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className={`bg-gray-700 rounded-lg p-3 cursor-pointer transition-all hover:bg-gray-600 ${
-                        selectedProduct === product.id ? 'ring-2 ring-purple-500 bg-purple-900/20 border border-purple-500' : ''
-                      }`}
-                      onClick={() => handleProductSelect(product.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-2xl">📱</span>
-                          <div>
-                            <h3 className={`font-medium ${selectedProduct === product.id ? 'text-purple-200' : 'text-white'}`}>
-                              {product.name}
-                            </h3>
-                            <p className={`text-sm ${selectedProduct === product.id ? 'text-purple-300' : 'text-gray-400'}`}>
-                              Virtual Number Service
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`text-lg font-bold ${selectedProduct === product.id ? 'text-purple-300' : 'text-green-400'}`}>
-                            ${product.cost}
-                          </span>
-                          {selectedProduct === product.id && (
-                            <CheckCircle className="w-4 h-4 text-purple-400" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-2 text-xs text-gray-400">
-                        {product.count} available
-                      </div>
-                    </div>
-                  ))
-                ) : searchQuery ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400 text-sm">No products found for "{searchQuery}"</p>
+            {/* Search Input */}
+            <div className="mb-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent pr-10"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  {searchQuery ? (
                     <button
                       onClick={() => setSearchQuery('')}
-                      className="mt-2 text-purple-400 hover:text-purple-300 text-sm underline"
+                      className="text-gray-400 hover:text-white transition-colors"
+                      title="Clear search"
                     >
-                      Clear search
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-gray-400 text-sm">No products available</p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="pointer-events-none">
+                      <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
               </div>
+              {searchQuery && (
+                <div className="mt-2 text-sm text-gray-400">
+                  Showing {filteredProducts.length} of {productsData.length} products
+                </div>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              {isLoadingProducts ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-2"></div>
+                  <p className="text-gray-400 text-sm">Loading products...</p>
+                </div>
+              ) : filteredProducts.length > 0 ? (
+                filteredProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className={`bg-gray-700 rounded-lg p-3 cursor-pointer transition-all hover:bg-gray-600 ${
+                      selectedProduct === product.id ? 'ring-2 ring-purple-500 bg-purple-900/20 border border-purple-500' : ''
+                    }`}
+                    onClick={() => handleProductSelect(product.id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">📱</span>
+                        <div>
+                          <h3 className={`font-medium ${selectedProduct === product.id ? 'text-purple-200' : 'text-white'}`}>
+                            {product.name}
+                          </h3>
+                          <p className={`text-sm ${selectedProduct === product.id ? 'text-purple-300' : 'text-gray-400'}`}>
+                            Virtual Number Service
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-lg font-bold ${selectedProduct === product.id ? 'text-purple-300' : 'text-green-400'}`}>
+                          {product.price}
+                        </span>
+                        {selectedProduct === product.id && (
+                          <CheckCircle className="w-4 h-4 text-purple-400" />
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-400">
+                      1 available
+                    </div>
+                  </div>
+                ))
+              ) : searchQuery ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-400 text-sm">No products found for "{searchQuery}"</p>
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="mt-2 text-purple-400 hover:text-purple-300 text-sm underline"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-400 text-sm">No products available</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right Panel - Main Content */}
-        <div className="flex-1 bg-gray-900 p-6">
-          {/* Provider Selection Section - Top Row */}
+        {/* Right Panel */}
+        <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
+          {/* Country Selector */}
+          <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              🌍 Select Country for Testing
+            </label>
+            <select
+              value={selectedCountry}
+              onChange={(e) => handleCountryChange(e.target.value)}
+              className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-medium"
+            >
+              <option value="usa">🇺🇸 United States (USA)</option>
+              <option value="india">🇮🇳 India</option>
+            </select>
+            <div className="mt-2 p-2 bg-gray-700 rounded text-xs text-gray-300">
+              <span className="font-medium">Available Services:</span>
+              {selectedCountry === 'usa' 
+                ? ' Facebook, Google, Virtual services (Free numbers available)'
+                : ' Jio Mart, Zomato, Swiggy, Ola, Uber, Paytm (Free numbers available)'
+              }
+            </div>
+          </div>
+
+          {/* Provider Selection */}
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-white mb-4">Select Provider</h2>
             <div className="flex space-x-4">
@@ -558,7 +521,7 @@ function App() {
                   <Phone className="w-6 h-6 text-purple-400" />
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-white font-medium text-lg">+91{virtualNumbers[0].number}</span>
+                      <span className="text-white font-medium text-lg">{virtualNumbers[0].number}</span>
                       <button className="text-gray-400 hover:text-white">
                         <Copy className="w-4 h-4" />
                       </button>
@@ -566,8 +529,9 @@ function App() {
                     <div className="flex items-center space-x-2 mt-1">
                       <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">5sim</span>
                       <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
-                        SMS - {apiProducts.find(p => p.id === selectedProduct)?.name || selectedProduct || 'general'}
+                        {apiProducts.find(p => p.id === selectedProduct)?.name || selectedProduct || 'general'}
                       </span>
+                      <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">{selectedCountry.toUpperCase()}</span>
                     </div>
                   </div>
                 </div>

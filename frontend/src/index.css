@@ -27,6 +27,31 @@
   scrollbar-color: #4B5563 #374151;
 }
 
+/* Left panel scrollbar */
+.left-panel-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.left-panel-scroll::-webkit-scrollbar-track {
+  background: #374151;
+  border-radius: 4px;
+}
+
+.left-panel-scroll::-webkit-scrollbar-thumb {
+  background: #6B7280;
+  border-radius: 4px;
+}
+
+.left-panel-scroll::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* Firefox scrollbar for left panel */
+.left-panel-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #6B7280 #374151;
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;

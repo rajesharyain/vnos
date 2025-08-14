@@ -15,7 +15,7 @@ import {
   CountryDetails
 } from '../types';
 
-const API_BASE_URL = '/api/virtual-numbers';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 /**
  * API Service for Virtual Number Operations
@@ -28,7 +28,7 @@ export class ApiService {
    */
   static async getSelectedProvider(): Promise<string | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/providers/selected`);
+      const response = await fetch(`${API_BASE_URL}/virtual-numbers/providers/selected`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -43,7 +43,7 @@ export class ApiService {
 
   static async getSelectedProviderDetails(): Promise<{ providerId: string; status: any; selectedAt: string } | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/providers/selected`);
+      const response = await fetch(`${API_BASE_URL}/virtual-numbers/providers/selected`);
       const result = await response.json();
       
       if (result.success && result.data) {
@@ -60,7 +60,7 @@ export class ApiService {
    * Get all available providers
    */
   static async getProviders(): Promise<Provider[]> {
-    const response = await fetch(`${API_BASE_URL}/providers`);
+    const response = await fetch(`${API_BASE_URL}/virtual-numbers/providers`);
     const data: ProvidersResponse = await response.json();
     
     if (!data.success) {
@@ -74,7 +74,7 @@ export class ApiService {
    * Get status of a specific provider
    */
   static async getProviderStatus(providerId: string): Promise<ProviderStatus> {
-    const response = await fetch(`${API_BASE_URL}/providers/${encodeURIComponent(providerId)}/status`);
+    const response = await fetch(`${API_BASE_URL}/virtual-numbers/providers/${encodeURIComponent(providerId)}/status`);
     const data: ProviderStatusResponse = await response.json();
     
     if (!data.success) {
@@ -88,7 +88,7 @@ export class ApiService {
    * Select a specific provider
    */
   static async selectProvider(providerId: string): Promise<{ providerId: string; providerName: string }> {
-    const response = await fetch(`${API_BASE_URL}/providers/${encodeURIComponent(providerId)}/select`, {
+    const response = await fetch(`${API_BASE_URL}/virtual-numbers/providers/${encodeURIComponent(providerId)}/select`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,7 +108,7 @@ export class ApiService {
    * Request a new virtual number
    */
   static async requestNumber(): Promise<VirtualNumber> {
-    const response = await fetch(API_BASE_URL, {
+    const response = await fetch(`${API_BASE_URL}/virtual-numbers`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -128,7 +128,7 @@ export class ApiService {
    * Get all active virtual numbers
    */
   static async getActiveNumbers(): Promise<VirtualNumber[]> {
-    const response = await fetch(API_BASE_URL);
+    const response = await fetch(`${API_BASE_URL}/virtual-numbers`);
     const data = await response.json();
     
     if (!data.success) {
@@ -142,7 +142,7 @@ export class ApiService {
    * Get OTPs for a specific number
    */
   static async getOTPs(number: string): Promise<OTP[]> {
-    const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(number)}/otps`);
+    const response = await fetch(`${API_BASE_URL}/virtual-numbers/${encodeURIComponent(number)}/otps`);
     const data: GetOTPsResponse = await response.json();
     
     if (!data.success) {
@@ -156,7 +156,7 @@ export class ApiService {
    * Cancel/Release a virtual number
    */
   static async cancelNumber(number: string): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(number)}`, {
+    const response = await fetch(`${API_BASE_URL}/virtual-numbers/${encodeURIComponent(number)}`, {
       method: 'DELETE',
     });
 
@@ -173,7 +173,7 @@ export class ApiService {
    * Resend OTP for a number
    */
   static async resendOTP(number: string): Promise<boolean> {
-    const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(number)}/resend`, {
+    const response = await fetch(`${API_BASE_URL}/virtual-numbers/${encodeURIComponent(number)}/resend`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -193,7 +193,7 @@ export class ApiService {
    * Get a specific virtual number
    */
   static async getNumber(number: string): Promise<VirtualNumber> {
-    const response = await fetch(`${API_BASE_URL}/${encodeURIComponent(number)}`);
+    const response = await fetch(`${API_BASE_URL}/virtual-numbers/${encodeURIComponent(number)}`);
     const data = await response.json();
     
     if (!data.success || !data.data) {
@@ -205,7 +205,7 @@ export class ApiService {
 
   static async getProviderCountries(providerId: string): Promise<Country[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/providers/${providerId}/countries`);
+      const response = await fetch(`${API_BASE_URL}/virtual-numbers/providers/${providerId}/countries`);
       const result = await response.json();
       
       if (result.success) {
@@ -220,7 +220,7 @@ export class ApiService {
 
   static async getProviderProducts(providerId: string, countryId: string): Promise<Product[]> {
     try {
-      const response = await fetch(`${API_BASE_URL}/providers/${providerId}/countries/${countryId}/products`);
+      const response = await fetch(`${API_BASE_URL}/virtual-numbers/providers/${providerId}/countries/${countryId}/products`);
       const result = await response.json();
       
       if (result.success) {
@@ -235,7 +235,7 @@ export class ApiService {
 
   static async getCountryDetails(providerId: string, countryId: string): Promise<CountryDetails | null> {
     try {
-      const response = await fetch(`${API_BASE_URL}/providers/${providerId}/countries/${countryId}/details`);
+      const response = await fetch(`${API_BASE_URL}/virtual-numbers/providers/${providerId}/countries/${countryId}/details`);
       const result = await response.json();
       
       if (result.success) {
@@ -248,17 +248,18 @@ export class ApiService {
     }
   }
 
-  static async requestVirtualNumber(countryId?: string, productId?: string): Promise<VirtualNumber> {
+  static async requestVirtualNumber(productId: string, countryId: string = 'india', operatorId?: string): Promise<VirtualNumber> {
     try {
-      const params = new URLSearchParams();
-      if (countryId) params.append('country', countryId);
-      if (productId) params.append('product', productId);
-      
-      const response = await fetch(`${API_BASE_URL}/virtual-numbers?${params.toString()}`, {
+      const response = await fetch(`${API_BASE_URL}/virtual-numbers`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          product: productId,
+          country: countryId,
+          operator: operatorId
+        })
       });
       
       const data = await response.json();
@@ -270,6 +271,28 @@ export class ApiService {
       return data.data;
     } catch (error) {
       console.error('Failed to request virtual number:', error);
+      throw error;
+    }
+  }
+
+  static async checkOtps(phoneNumber: string): Promise<OTP[]> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/virtual-numbers/${phoneNumber}/otps`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to check OTPs');
+      }
+      
+      return data.data;
+    } catch (error) {
+      console.error('Failed to check OTPs:', error);
       throw error;
     }
   }

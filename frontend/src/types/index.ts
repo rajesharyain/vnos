@@ -1,17 +1,21 @@
 export interface VirtualNumber {
   id: string;
   number: string;
+  provider: string;
+  country: string;
+  product: string;
+  otps: OTP[];
   createdAt: Date;
   expiresAt: Date;
-  isActive: boolean;
-  otps: OTP[];
+  status: 'active' | 'expired' | 'cancelled';
 }
 
 export interface OTP {
   id: string;
   code: string;
   receivedAt: Date;
-  isUsed: boolean;
+  isUsed?: boolean;
+  source?: string;
 }
 
 export interface Provider {

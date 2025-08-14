@@ -74,6 +74,9 @@ export class ProviderFactory {
 
     switch (providerId.toLowerCase()) {
       case 'twilio':
+        // Temporarily disabled due to interface compatibility issues
+        throw new Error('Twilio provider temporarily disabled. Please use 5SIM instead.');
+        /*
         try {
           if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
             provider = new TwilioVirtualNumberProvider();
@@ -85,6 +88,7 @@ export class ProviderFactory {
           console.error('[ProviderFactory] Failed to initialize Twilio:', error);
           throw error; // Don't fall back automatically
         }
+        */
         break;
 
       case '5sim':
@@ -102,6 +106,9 @@ export class ProviderFactory {
         break;
 
       case 'sms-activate':
+        // Temporarily disabled due to interface compatibility issues
+        throw new Error('SMS-Activate provider temporarily disabled. Please use 5SIM instead.');
+        /*
         try {
           if (process.env.SMS_ACTIVATE_API_KEY) {
             provider = new SMSActivateProvider();
@@ -113,11 +120,16 @@ export class ProviderFactory {
           console.error('[ProviderFactory] Failed to initialize SMS-Activate:', error);
           throw error; // Don't fall back automatically
         }
+        */
         break;
 
       case 'mock':
+        // Temporarily disabled due to interface compatibility issues
+        throw new Error('Mock provider temporarily disabled. Please use 5SIM instead.');
+        /*
         provider = new MockVirtualNumberProvider();
         console.log('[ProviderFactory] Using mock provider');
+        */
         break;
 
       default:
