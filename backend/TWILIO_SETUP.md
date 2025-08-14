@@ -25,19 +25,7 @@ This guide will help you set up Twilio integration for dynamically purchasing an
 
 2. Edit the `.env` file with your Twilio credentials:
    ```env
-   # Twilio Configuration
-   TWILIO_ACCOUNT_SID=your_account_sid
-   TWILIO_AUTH_TOKEN=your_auth_token_here
    
-   # Server Configuration
-   PORT=5000
-   NODE_ENV=development
-   
-   # Webhook Configuration
-   WEBHOOK_BASE_URL=http://localhost:5000
-   
-   # Optional: Enable Twilio webhook validation
-   TWILIO_WEBHOOK_VALIDATION=true
    ```
 
 ## Step 3: Test the Integration
