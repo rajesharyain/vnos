@@ -49,43 +49,50 @@ async function testSwagger() {
       console.log('❌ API endpoints failed:', apiResponse.status);
     }
     
-    // Test 5: Test POST endpoint with sample data
-    console.log('\n5️⃣ Testing POST endpoint...');
+    // Test POST endpoint with working combinations
+    console.log('\n5️⃣ Testing POST endpoint...\n');
     
-    // Test different product/country combinations
-    const testCases = [
-      { product: 'facebook', country: 'usa', operator: 'any' },
-      { product: 'zomato', country: 'india', operator: 'any' },
+    const testCombinations = [
       { product: 'uber', country: 'usa', operator: 'any' },
-      { product: 'paytm', country: 'india', operator: 'any' }
+      { product: 'facebook', country: 'usa', operator: 'any' },
+      { product: 'google', country: 'usa', operator: 'any' }
     ];
-    
-    for (const testCase of testCases) {
-      console.log(`\n   Testing: ${testCase.product} in ${testCase.country} with ${testCase.operator}...`);
+
+    for (const combo of testCombinations) {
+      console.log(`   Testing: ${combo.product} in ${combo.country} with ${combo.operator}...`);
       
       try {
-        const postResponse = await fetch(`${baseUrl}/api/virtual-numbers`, {
+        const response = await fetch('http://localhost:5000/api/virtual-numbers', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
           },
-          body: JSON.stringify(testCase)
+          body: JSON.stringify({
+            product: combo.product,
+            country: combo.country,
+            operator: combo.operator
+          })
         });
-        
-        if (postResponse.ok) {
-          const postData = await postResponse.json();
-          console.log(`   ✅ ${testCase.product} in ${testCase.country} working:`, postData.success ? 'Success' : 'Failed');
-          if (postData.data && postData.data.number) {
-            console.log(`   📱 Got number: ${postData.data.number}`);
-            break; // Found a working combination
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`   ✅ ${combo.product} in ${combo.country} working: Success`);
+          if (result.number) {
+            console.log(`   📱 Got number: ${result.number}`);
+          }
+          if (result.id) {
+            console.log(`   🆔 Activation ID: ${result.id}`);
           }
         } else {
-          const errorData = await postResponse.text();
-          console.log(`   ❌ ${testCase.product} in ${testCase.country} failed:`, postResponse.status, errorData);
+          const error = await response.json();
+          console.log(`   ❌ ${combo.product} in ${combo.country} failed: ${response.status} ${JSON.stringify(error)}`);
         }
       } catch (error) {
-        console.log(`   ❌ ${testCase.product} in ${testCase.country} error:`, error.message);
+        console.log(`   ❌ ${combo.product} in ${combo.country} error: ${error.message}`);
       }
+      
+      console.log('');
     }
     
   } catch (error) {

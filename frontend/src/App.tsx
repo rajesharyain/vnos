@@ -13,7 +13,7 @@ function App() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [selectedProvider, setSelectedProvider] = useState<string>('5sim'); // Default to 5SIM for testing
   const [providerError, setProviderError] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<string | null>('facebook'); // Changed to facebook
+  const [selectedProduct, setSelectedProduct] = useState<string | null>('uber'); // Changed from facebook to uber since it's available for USA
   const [selectedCountry, setSelectedCountry] = useState<string>('usa'); // Reverted back to 'usa' as per user feedback
   const [apiProducts, setApiProducts] = useState<Array<{ id: string; name: string; cost: number; count: number }>>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false); // Changed to false since we use hardcoded products
@@ -62,11 +62,11 @@ function App() {
   const getProductsForCountry = (country: string) => {
     if (country === 'usa') {
       return [
+        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', price: '$0.70', icon: '🚗' },
         { id: 'facebook', name: 'Facebook', description: 'Social media platform OTP', price: '$0.50', icon: '📘' },
         { id: 'google', name: 'Google', description: 'Google services OTP', price: '$0.75', icon: '🔍' },
         { id: 'twitter', name: 'Twitter', description: 'Social media OTP', price: '$0.30', icon: '🐦' },
-        { id: 'whatsapp', name: 'WhatsApp', description: 'Messaging OTP', price: '$0.50', icon: '💬' },
-        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', price: '$0.70', icon: '🚗' }
+        { id: 'whatsapp', name: 'WhatsApp', description: 'Messaging OTP', price: '$0.50', icon: '💬' }
       ];
     } else {
       // India products - based on actual 5SIM availability
@@ -92,7 +92,7 @@ function App() {
     product.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const [operators, setOperators] = useState(() => getProductOperators('facebook')); // Default to facebook operators
+  const [operators, setOperators] = useState(() => getProductOperators('uber')); // Default to uber operators since it's available
 
   // Update products and operators when country changes
   useEffect(() => {
