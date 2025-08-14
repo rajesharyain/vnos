@@ -1,0 +1,26 @@
+{
+  "name": "virtual-number-otp-app",
+  "version": "1.0.0",
+  "description": "Full-stack web app for requesting temporary Indian virtual mobile numbers and receiving OTPs",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "cd backend && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "kill-5000": "cd backend && npm run kill-5000",
+    "kill-3000": "powershell -Command \"Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }\"",
+    "kill-ports": "npm run kill-5000 && npm run kill-3000",
+    "kill-all": "cd backend && npm run kill-all"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+} 
