@@ -1319,4 +1319,185 @@ router.get('/price/:product/:country', async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/virtual-numbers/operators:
+ *   get:
+ *     summary: Get available operators for a specific country
+ *     description: |
+ *       Retrieve all available mobile operators for a specific country from SMS-Activate API.
+ *       This endpoint provides real-time operator availability data for virtual number services.
+ *       
+ *       **🌍 Supported Countries:**
+ *       - **22**: India (IN)
+ *       - **1**: United States (US)
+ *       
+ *       **📱 Response Format:**
+ *       Returns an array of operator names available for the specified country.
+ *       
+ *       **⚠️ Error Handling:**
+ *       - BAD_KEY: Invalid API key
+ *       - ERROR_SQL: SMS-Activate server error
+ *       - OPERATORS_NOT_FOUND: No operators for country
+ *       
+ *     parameters:
+ *       - in: query
+ *         name: country
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: ["22", "1"]
+ *           description: Country code (22=India, 1=USA)
+ *         example: "22"
+ *     
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved operators
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 operators:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   description: Array of operator names
+ *                   example: ["airtel", "jio", "vodafone", "bsnl", "idea"]
+ *       400:
+ *         description: Missing country parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Country parameter is required"
+ *       401:
+ *         description: Invalid SMS-Activate API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid SMS-Activate API key"
+ *       500:
+ *         description: Server error or SMS-Activate API error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to fetch operators"
+ *     
+ *     tags:
+ *       - Virtual Numbers
+ */
+router.get('/smsactivate/operators', async (req, res) => {
+  try {
+    const { country } = req.query;
+    
+    if (!country || typeof country !== 'string') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Country parameter is required and must be a string' 
+      });
+    }
+
+    // Get API key from environment
+    const apiKey = process.env.SMS_ACTIVATE_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'SMS-Activate API key not configured' 
+      });
+    }
+
+    console.log(`[API] Fetching operators for country: ${country} from SMS-Activate`);
+
+    // Call SMS-Activate API directly
+    const response = await fetch(
+      `https://api.sms-activate.ae/stubs/handler_api.php?api_key=${apiKey}&action=getOperators&country=${country}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`SMS-Activate API error: ${response.status}`);
+    }
+
+    const data = await response.json() as {
+      status: string;
+      countryOperators?: { [key: string]: string[] };
+    };
+    
+    console.log(`[API] SMS-Activate response:`, data);
+    
+    if (data.status === 'success' && data.countryOperators && data.countryOperators[country]) {
+      const operators = data.countryOperators[country];
+      console.log(`[API] Successfully fetched ${operators.length} operators for country ${country}`);
+      
+      res.json({ 
+        success: true, 
+        operators: operators 
+      });
+    } else if (typeof data === 'string') {
+      // Handle string error responses from SMS-Activate
+      if (data === 'BAD_KEY') {
+        console.error('[API] SMS-Activate: Invalid API key');
+        res.status(401).json({ 
+          success: false, 
+          error: 'Invalid SMS-Activate API key' 
+        });
+      } else if (data === 'ERROR_SQL') {
+        console.error('[API] SMS-Activate: SQL server error');
+        res.status(500).json({ 
+          success: false, 
+          error: 'SMS-Activate server error' 
+        });
+      } else if (data === 'OPERATORS_NOT_FOUND') {
+        console.log(`[API] SMS-Activate: No operators found for country ${country}`);
+        res.json({ 
+          success: true, 
+          operators: [] 
+        });
+      } else {
+        console.error('[API] SMS-Activate: Unknown error response:', data);
+        res.status(500).json({ 
+          success: false, 
+          error: 'Unknown error from SMS-Activate' 
+        });
+      }
+    } else {
+      console.error('[API] SMS-Activate: Unknown error response:', data);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Unknown error from SMS-Activate' 
+      });
+    }
+    
+  } catch (error) {
+    console.error('[API] Error fetching operators:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch operators' 
+    });
+  }
+});
+
 export default router; 
