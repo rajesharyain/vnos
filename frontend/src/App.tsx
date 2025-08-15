@@ -3,7 +3,7 @@ import { VirtualNumber } from './types';
 import { ApiService } from './services/api';
 import { socketService } from './services/socket';
 import { VirtualNumberSlot } from './components/VirtualNumberSlot';
-import { ProviderSelector } from './components/ProviderSelector';
+
 import { Phone, Plus, Wifi, WifiOff, AlertCircle, CheckCircle, Copy, Clock, MessageCircle } from 'lucide-react';
 import productsData from './data/products.json';
 
@@ -44,6 +44,9 @@ function App() {
   const [realIndianServices, setRealIndianServices] = useState<IndianService[]>([]);
   const [isLoadingIndianServices, setIsLoadingIndianServices] = useState(true);
   const [indianServicesError, setIndianServicesError] = useState<string | null>(null);
+  
+  // State for country dropdown
+  const [showCountryDropdown, setShowCountryDropdown] = useState<boolean>(false);
 
   // Background worker to fetch Indian services
   useEffect(() => {
@@ -138,18 +141,92 @@ function App() {
   // Helper function to get service icons
   const getServiceIcon = (serviceName: string): string => {
     const iconMap: { [key: string]: string } = {
+      // E-commerce & Shopping
       'Amazon': '📦',
       'Flipkart': '🛒',
-      'Paytm': '💳',
-      'PhonePe': '📱',
+      'JioMart': '🛍️',
+      'DMart': '🏪',
+      'VishalMart': '🏬',
+      'Myntra': '👗',
+      'Snapdeal': '📱',
+      'Meesho': '🛍️',
+      'AJIO': '👔',
+      'Nykaa': '💄',
+      'Purplle': '💅',
+      'FirstCry': '👶',
+      
+      // Food Delivery & Quick Commerce
       'Swiggy': '🍔',
       'Zomato': '🍕',
+      'Zepto': '⚡',
+      'BigBasket': '🛒',
+      'Blinkit': '⚡',
+      'Dunzo': '🚚',
+      
+      // Transportation & Ride-sharing
       'Uber': '🚗',
-      'Ola': '🚙',
+      'Ola Cabs': '🚙',
+      'Rapido': '🏍️',
+      'BluSmart': '🔋',
+      
+      // Digital Payments & Fintech
+      'PayTM (Payzapp)': '💳',
+      'PhonePe': '📱',
+      'Google Pay (Google)': '🔍',
+      'Mobikwik': '💰',
+      'Amazon Pay': '📦',
+      'CRED': '💳',
+      
+      // Entertainment & Media
       'Disney+ Hotstar': '🎬',
+      'Jio Cinema': '🎭',
+      'Jio Hotstar': '📺',
+      'Sony LIV': '📺',
       'Netflix': '📺',
+      'Prime Video': '📺',
+      'Voot': '📺',
+      
+      // Gaming & Fantasy Sports
       'Dream11': '🎮',
-      '1mg': '💊'
+      'MPL': '🎮',
+      'WinZO': '🎮',
+      'Ludo Supreme': '🎲',
+      'RummyCircle': '🃏',
+      
+      // Healthcare & Pharmacy
+      '1mg': '💊',
+      'PharmEasy': '💊',
+      'Apollo': '🏥',
+      'Practo': '👨‍⚕️',
+      'Netmeds': '💊',
+      
+      // Education
+      'BYJU\'S': '📚',
+      'Unacademy': '📚',
+      'Vedantu': '📚',
+      'Doubtnut': '❓',
+      'Toppr': '📚',
+      
+      // Job & Services
+      'Naukri': '💼',
+      'Urban Company': '🏠',
+      'Just Dial': '🔍',
+      'BookMyShow': '🎫',
+      'MakeMyTrip': '✈️',
+      'Goibibo': '🏨',
+      
+      // Banking & Financial Services
+      'HDFC Bank': '🏦',
+      'ICICI Bank': '🏦',
+      'State Bank of India': '🏦',
+      'Axis Bank': '🏦',
+      
+      // Social Media & Communication
+      'WhatsApp': '💬',
+      'Instagram': '📸',
+      'Facebook': '📘',
+      'Telegram': '📢',
+      'Snapchat': '👻'
     };
     
     return iconMap[serviceName] || '📱';
@@ -231,50 +308,53 @@ function App() {
       // SMS-Activate provider - use Indian services
       if (country === 'india') {
         return [
-          { id: 'amazon', name: 'Amazon', description: 'E-commerce OTP', icon: '📦' },
-          { id: 'flipkart', name: 'Flipkart', description: 'E-commerce OTP', icon: '🛒' },
-          { id: 'paytm', name: 'Paytm', description: 'Digital payments OTP', icon: '💳' },
-          { id: 'phonepe', name: 'PhonePe', description: 'Digital payments OTP', icon: '📱' },
-          { id: 'swiggy', name: 'Swiggy', description: 'Food delivery OTP', icon: '🍔' },
-          { id: 'zomato', name: 'Zomato', description: 'Food delivery OTP', icon: '🍕' },
-          { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
-          { id: 'ola', name: 'Ola', description: 'Ride-hailing OTP', icon: '🚙' },
-          { id: 'disneyhotstar', name: 'Disney+ Hotstar', description: 'Streaming OTP', icon: '🎬' },
-          { id: 'netflix', name: 'Netflix', description: 'Streaming OTP', icon: '📺' },
-          { id: 'dream11', name: 'Dream11', description: 'Gaming OTP', icon: '🎮' },
-          { id: '1mg', name: '1mg', description: 'Pharmacy OTP', icon: '💊' }
+          { id: 'amazon', name: 'Amazon', icon: '📦' },
+          { id: 'flipkart', name: 'Flipkart', icon: '🛒' },
+          { id: 'jiomart', name: 'JioMart', icon: '🛍️' },
+          { id: 'dmart', name: 'DMart', icon: '🏪' },
+          { id: 'vishalmart', name: 'VishalMart', icon: '🏬' },
+          { id: 'paytm', name: 'Paytm', icon: '💳' },
+          { id: 'phonepe', name: 'PhonePe', icon: '📱' },
+          { id: 'swiggy', name: 'Swiggy', icon: '🍔' },
+          { id: 'zomato', name: 'Zomato', icon: '🍕' },
+          { id: 'uber', name: 'Uber', icon: '🚗' },
+          { id: 'ola', name: 'Ola', icon: '🚙' },
+          { id: 'disneyhotstar', name: 'Disney+ Hotstar', icon: '🎬' },
+          { id: 'netflix', name: 'Netflix', icon: '📺' },
+          { id: 'dream11', name: 'Dream11', icon: '🎮' },
+          { id: '1mg', name: '1mg', icon: '💊' }
         ];
       } else {
         // For other countries with SMS-Activate, show generic services
         return [
-          { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
-          { id: 'facebook', name: 'Facebook', description: 'Social media OTP', icon: '📘' },
-          { id: 'google', name: 'Google', description: 'Google services OTP', icon: '🔍' },
-          { id: 'whatsapp', name: 'WhatsApp', description: 'Messaging OTP', icon: '💬' }
+          { id: 'uber', name: 'Uber', icon: '🚗' },
+          { id: 'facebook', name: 'Facebook', icon: '📘' },
+          { id: 'google', name: 'Google', icon: '🔍' },
+          { id: 'whatsapp', name: 'WhatsApp', icon: '💬' }
         ];
       }
     } else if (country === 'usa') {
       // 5SIM provider for USA
       return [
-        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
-        { id: 'facebook', name: 'Facebook', description: 'Social media platform OTP', icon: '📘' },
-        { id: 'google', name: 'Google', description: 'Google services OTP', icon: '🔍' },
-        { id: 'twitter', name: 'Twitter', description: 'Social media OTP', icon: '🐦' },
-        { id: 'whatsapp', name: 'WhatsApp', description: 'Messaging OTP', icon: '💬' }
+        { id: 'uber', name: 'Uber', icon: '🚗' },
+        { id: 'facebook', name: 'Facebook', icon: '📘' },
+        { id: 'google', name: 'Google', icon: '🔍' },
+        { id: 'twitter', name: 'Twitter', icon: '🐦' },
+        { id: 'whatsapp', name: 'WhatsApp', icon: '💬' }
       ];
     } else {
       // 5SIM provider for India
       return [
-        { id: 'zomato', name: 'Zomato', description: 'Food delivery OTP', icon: '🍕' },
-        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
-        { id: 'ola', name: 'Ola', description: 'Ride-hailing OTP', icon: '🚙' },
-        { id: 'paytm', name: 'Paytm', description: 'Digital payments OTP', icon: '💳' },
-        { id: 'phonepe', name: 'PhonePe', description: 'Digital payments OTP', icon: '📱' },
-        { id: 'amazon', name: 'Amazon', description: 'E-commerce OTP', icon: '📦' },
-        { id: 'flipkart', name: 'Flipkart', description: 'E-commerce OTP', icon: '🛒' },
-        { id: 'swiggy', name: 'Swiggy', description: 'Food delivery OTP', icon: '🍔' },
-        { id: 'meesho', name: 'Meesho', description: 'Social commerce OTP', icon: '🛍️' },
-        { id: 'snapdeal', name: 'Snapdeal', description: 'E-commerce OTP', icon: '📱' }
+        { id: 'zomato', name: 'Zomato', icon: '🍕' },
+        { id: 'uber', name: 'Uber', icon: '🚗' },
+        { id: 'ola', name: 'Ola', icon: '🚙' },
+        { id: 'paytm', name: 'Paytm', icon: '💳' },
+        { id: 'phonepe', name: 'PhonePe', icon: '📱' },
+        { id: 'amazon', name: 'Amazon', icon: '📦' },
+        { id: 'flipkart', name: 'Flipkart', icon: '🛒' },
+        { id: 'swiggy', name: 'Swiggy', icon: '🍔' },
+        { id: 'meesho', name: 'Meesho', icon: '🛍️' },
+        { id: 'snapdeal', name: 'Snapdeal', icon: '📱' }
       ];
     }
   };
@@ -286,7 +366,6 @@ function App() {
       return realIndianServices.map(service => ({
         id: service.id,
         name: service.name,
-        description: service.description,
         icon: getServiceIcon(service.name)
       }));
     } else {
@@ -299,8 +378,7 @@ function App() {
 
   // Filter products based on search query
   const filteredProducts = productsData.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.description.toLowerCase().includes(searchQuery.toLowerCase())
+    product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const [operators, setOperators] = useState(() => getProductOperators('amazon', 'sms-activate', 'india'));
@@ -326,6 +404,24 @@ function App() {
       console.log('Auto-switched to India for SMS-Activate provider');
     }
   }, [selectedProvider]);
+
+  // Close country dropdown when country changes
+  useEffect(() => {
+    setShowCountryDropdown(false);
+  }, [selectedCountry]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.country-selector')) {
+        setShowCountryDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleOperatorSelect = (operatorId: string) => {
     setSelectedOperator(operatorId);
@@ -519,6 +615,54 @@ function App() {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+                            {/* Country Selector - Moved to header */}
+              <div className="flex items-center space-x-2 country-selector">
+                <div className="relative">
+                  <button
+                    onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                    className="flex items-center space-x-2 bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg border border-gray-600 transition-colors"
+                  >
+                    <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">🌍</span>
+                    </div>
+                    <span className="text-white font-medium text-sm">{selectedCountry === 'usa' ? 'US' : 'IN'}</span>
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Country Dropdown */}
+                  {showCountryDropdown && (
+                    <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            handleCountryChange('india');
+                            setShowCountryDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 ${
+                            selectedCountry === 'india' ? 'text-purple-400 bg-gray-700' : 'text-white'
+                          }`}
+                        >
+                          🇮🇳 India
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleCountryChange('usa');
+                            setShowCountryDropdown(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700 ${
+                            selectedCountry === 'usa' ? 'text-purple-400 bg-gray-700' : 'text-white'
+                          }`}
+                        >
+                          🇺🇸 United States
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
               <div className="flex items-center space-x-2">
                 {isConnected ? (
                   <Wifi className="w-4 h-4 text-green-400" />
@@ -546,8 +690,8 @@ function App() {
               {selectedProvider === 'sms-activate' && selectedCountry === 'india' 
                 ? 'Real-time Indian services from SMS-Activate'
                 : selectedCountry === 'usa' 
-                  ? 'Select a product to get a USA virtual number for OTP testing'
-                  : 'Select a product to get an Indian virtual number for OTP testing'
+                  ? 'Select a product to get a USA virtual number'
+                  : 'Select a product to get an Indian virtual number'
               }
             </p>
 
@@ -598,12 +742,24 @@ function App() {
                   )}
                 </div>
               </div>
-              {searchQuery && (
-                <div className="mt-2 text-sm text-gray-400">
-                  Showing {filteredProducts.length} of {productsData.length} products
+                             {searchQuery && (
+                 <div className="mt-2 text-sm text-gray-400">
+                   Showing {filteredProducts.length} of {productsData.length} products
+                 </div>
+               )}
+             </div>
+             
+                           {/* Availability Legend - Simple Text */}
+              <div className="flex items-center justify-start space-x-4 text-xs text-gray-400 -mt-2">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                  <span>Available</span>
                 </div>
-              )}
-            </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 rounded-full bg-red-400"></div>
+                  <span>Unavailable</span>
+                </div>
+              </div>
             
             <div className="space-y-2">
               {isLoadingProducts ? (
@@ -625,45 +781,37 @@ function App() {
                       }`}
                       onClick={() => handleProductSelect(product.id)}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-2xl">{product.icon}</span>
-                          <div>
-                            <h3 className={`font-medium ${selectedProduct === product.id ? 'text-purple-200' : 'text-white'}`}>
-                              {product.name}
-                            </h3>
-                            <p className={`text-sm ${selectedProduct === product.id ? 'text-purple-300' : 'text-gray-400'}`}>
-                              {product.description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className={`text-lg font-bold ${selectedProduct === product.id ? 'text-purple-300' : 'text-green-400'}`}>
-                            {realService && realService.realTimeData ? 
-                              `₹${realService.realTimeData.inrCost}` : 
-                              priceData ? `₹${priceData.inrCost}` : '₹415'
-                            }
-                          </span>
-                          {selectedProduct === product.id && (
-                            <CheckCircle className="w-4 h-4 text-purple-400" />
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-2 text-xs text-gray-400">
-                        {realService && realService.realTimeData ? 
-                          `${realService.realTimeData.count} available` : 
-                          priceData && priceData.count > 0 ? `${priceData.count} available` : '1 available'
-                        }
-                      </div>
-                      {/* Real-time availability indicator */}
-                      {realService && realService.realTimeData && (
-                        <div className="mt-2 flex items-center space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${realService.realTimeData.available ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                          <span className={`text-xs ${realService.realTimeData.available ? 'text-green-400' : 'text-red-400'}`}>
-                            {realService.realTimeData.available ? 'Live' : 'Unavailable'}
-                          </span>
-                        </div>
-                      )}
+                                             <div className="flex items-center justify-between">
+                         <div className="flex items-center space-x-3">
+                           <span className="text-2xl">{product.icon}</span>
+                           <div>
+                             <div className="flex items-center space-x-2">
+                               <h3 className={`font-medium ${selectedProduct === product.id ? 'text-purple-200' : 'text-white'}`}>
+                                 {product.name}
+                               </h3>
+                               {/* Availability indicator - just the dot */}
+                               <div className={`w-2 h-2 rounded-full ${
+                                 realService && realService.realTimeData 
+                                   ? (realService.realTimeData.available ? 'bg-green-400' : 'bg-red-400')
+                                   : 'bg-gray-400'
+                               }`}></div>
+                             </div>
+                           </div>
+                         </div>
+                         <div className="flex items-center space-x-2">
+                           <span className={`text-lg font-bold ${selectedProduct === product.id ? 'text-purple-300' : 'text-green-400'}`}>
+                             {realService && realService.realTimeData ? 
+                               `₹${realService.realTimeData.inrCost}` : 
+                               priceData ? `₹${priceData.inrCost}` : '₹415'
+                             }
+                           </span>
+                           {selectedProduct === product.id && (
+                             <CheckCircle className="w-4 h-4 text-purple-400" />
+                           )}
+                         </div>
+                       </div>
+
+
                     </div>
                   );
                 })
@@ -686,87 +834,76 @@ function App() {
           </div>
         </div>
 
-        {/* Right Panel */}
-        <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
-          {/* Country Selector */}
-          <div className="mb-6 p-4 bg-gray-800 rounded-lg border border-gray-700">
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              🌍 Select Country for Testing
-            </label>
-            <select
-              value={selectedCountry}
-              onChange={(e) => handleCountryChange(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent font-medium"
-            >
-              <option value="usa">🇺🇸 United States (USA)</option>
-              <option value="india">🇮🇳 India</option>
-            </select>
-            <div className="mt-2 p-2 bg-gray-700 rounded text-xs text-gray-300">
-              <span className="font-medium">Available Services:</span>
-              {selectedCountry === 'usa' 
-                ? ' Facebook, Google, Virtual services (Free numbers available)'
-                : selectedProvider === 'sms-activate' 
-                  ? ' Real Indian services with live pricing and availability'
-                  : ' Jio Mart, Zomato, Swiggy, Ola, Uber, Paytm (Free numbers available)'
-              }
-            </div>
-          </div>
+                 {/* Right Panel */}
+         <div className="flex-1 p-6 bg-gray-900 overflow-y-auto">
 
-          {/* Provider Selection */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-white mb-4">Select Provider</h2>
-            <div className="flex space-x-4">
-              <ProviderSelector 
-                selectedProvider={selectedProvider}
-                onProviderChange={handleProviderChange}
-              />
-            </div>
-          </div>
-
-          {/* Select Operator Section */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-white mb-2">Select Operator</h2>
-            <p className="text-gray-400 mb-6">
-              {selectedProduct ? (
-                <>
-                  Choose a telecom operator for <span className="text-purple-400 font-medium">
-                    {apiProducts.find(p => p.id === selectedProduct)?.name || selectedProduct}
-                  </span>
-                  <span className="text-gray-500 ml-2">(Virtual Number Service)</span>
-                </>
-              ) : (
-                'Select a product from the left panel to see available operators'
-              )}
-            </p>
-            
-            {/* Operator Grid */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              {operators.map((operator) => (
-                <div
-                  key={operator.id}
-                  className={`bg-gray-800 rounded-lg p-4 cursor-pointer transition-all hover:bg-gray-700 ${
-                    operator.selected ? 'ring-2 ring-purple-500 bg-gray-700' : ''
-                  }`}
-                  onClick={() => handleOperatorSelect(operator.id)}
-                >
-                  <h3 className="text-white font-medium mb-2">{operator.name}</h3>
-                  <p className="text-2xl font-bold text-green-400">{convertToINR(operator.price)}</p>
+                                           {/* Compact Service & Operator Selection */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              {/* Service Title & Provider Dropdown */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-white">
+                    Service: <span className="text-purple-400">
+                      {selectedProduct ? (apiProducts.find(p => p.id === selectedProduct)?.name || selectedProduct) : 'Select a service'}
+                    </span>
+                  </h3>
+                  
+                  {/* Provider Dropdown - Compact */}
+                  <div className="relative">
+                    <select
+                      value={selectedProvider}
+                      onChange={(e) => handleProviderChange(e.target.value)}
+                      className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="sms-activate">SMS-Activate</option>
+                      <option value="5sim">5SIM</option>
+                      <option value="twilio">Twilio</option>
+                      <option value="mock">Mock Provider</option>
+                    </select>
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
 
-            {/* Get Number Button */}
-            <button
-              onClick={handleRequestNumber}
-              disabled={!selectedOperator || isLoading}
-              className={`w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
-                !selectedOperator || isLoading ? 'cursor-not-allowed' : ''
-              }`}
-            >
-              <Phone className="w-5 h-5" />
-              <span>{isLoading ? 'Getting Number...' : 'Get Number'}</span>
-            </button>
-          </div>
+              {/* Operator Selection - Compact Grid */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium text-gray-300">Select Operator</h4>
+                  {selectedOperator && (
+                    <span className="text-xs text-green-400 bg-green-900/20 px-2 py-1 rounded">
+                      Selected: {operators.find(op => op.id === selectedOperator)?.name}
+                    </span>
+                  )}
+                </div>
+                
+                {/* Compact Operator Grid - 5 columns for better space usage */}
+                <div className="grid grid-cols-5 gap-2">
+                  {operators.map((operator) => (
+                    <div
+                      key={operator.id}
+                      className={`bg-gray-700 rounded-lg p-3 cursor-pointer transition-all hover:bg-gray-600 ${
+                        operator.selected ? 'ring-2 ring-purple-500 bg-purple-900/20 border border-purple-500' : ''
+                      }`}
+                      onClick={() => handleOperatorSelect(operator.id)}
+                    >
+                      <h5 className="text-white font-medium text-xs mb-1 truncate">{operator.name}</h5>
+                      <p className="text-lg font-bold text-green-400">{convertToINR(operator.price)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Get Number Button - Full Width */}
+              <button
+                onClick={handleRequestNumber}
+                disabled={!selectedOperator || isLoading}
+                className={`w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+                  !selectedOperator || isLoading ? 'cursor-not-allowed' : ''
+                }`}
+              >
+                <Phone className="w-5 h-5" />
+                <span>{isLoading ? 'Getting Number...' : 'Get Number'}</span>
+              </button>
+            </div>
 
           {/* Active Number Display */}
           {virtualNumbers.length > 0 && (

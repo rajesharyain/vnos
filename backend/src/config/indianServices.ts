@@ -36,6 +36,33 @@ export const INDIAN_SERVICES: IndianService[] = [
     priority: 'high'
   },
   {
+    id: 'jiomart',
+    name: 'JioMart',
+    category: 'E-commerce & Shopping',
+    smsActivateId: 'jm',
+    description: 'Reliance Jio\'s e-commerce platform',
+    expectedCount: 2,
+    priority: 'high'
+  },
+  {
+    id: 'dmart',
+    name: 'DMart',
+    category: 'E-commerce & Shopping',
+    smsActivateId: 'dm',
+    description: 'Avenue Supermarts retail chain',
+    expectedCount: 0,
+    priority: 'high'
+  },
+  {
+    id: 'vishalmart',
+    name: 'VishalMart',
+    category: 'E-commerce & Shopping',
+    smsActivateId: 'vm',
+    description: 'Vishal Mega Mart retail chain',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
     id: 'myntra',
     name: 'Myntra',
     category: 'E-commerce & Shopping',
@@ -59,6 +86,42 @@ export const INDIAN_SERVICES: IndianService[] = [
     category: 'E-commerce & Shopping',
     smsActivateId: 'ms',
     description: 'Social commerce platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'ajio',
+    name: 'AJIO',
+    category: 'E-commerce & Shopping',
+    smsActivateId: 'aj',
+    description: 'Reliance Fashion e-commerce',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'nykaa',
+    name: 'Nykaa',
+    category: 'E-commerce & Shopping',
+    smsActivateId: 'ny',
+    description: 'Beauty and cosmetics platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'purplle',
+    name: 'Purplle',
+    category: 'E-commerce & Shopping',
+    smsActivateId: 'pu',
+    description: 'Beauty and personal care platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'firstcry',
+    name: 'FirstCry',
+    category: 'E-commerce & Shopping',
+    smsActivateId: 'fc',
+    description: 'Baby and kids products platform',
     expectedCount: 0,
     priority: 'medium'
   },
@@ -100,6 +163,24 @@ export const INDIAN_SERVICES: IndianService[] = [
     expectedCount: 0,
     priority: 'medium'
   },
+  {
+    id: 'blinkit',
+    name: 'Blinkit',
+    category: 'Food Delivery & Quick Commerce',
+    smsActivateId: 'bk',
+    description: 'Quick commerce grocery delivery',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'dunzo',
+    name: 'Dunzo',
+    category: 'Food Delivery & Quick Commerce',
+    smsActivateId: 'du',
+    description: 'Hyperlocal delivery service',
+    expectedCount: 0,
+    priority: 'medium'
+  },
 
   // Transportation & Ride-sharing
   {
@@ -126,6 +207,15 @@ export const INDIAN_SERVICES: IndianService[] = [
     category: 'Transportation & Ride-sharing',
     smsActivateId: 'rp',
     description: 'Bike taxi service',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'blusmart',
+    name: 'BluSmart',
+    category: 'Transportation & Ride-sharing',
+    smsActivateId: 'bs',
+    description: 'Electric ride-hailing service',
     expectedCount: 0,
     priority: 'medium'
   },
@@ -167,6 +257,24 @@ export const INDIAN_SERVICES: IndianService[] = [
     expectedCount: 0,
     priority: 'medium'
   },
+  {
+    id: 'amazonpay',
+    name: 'Amazon Pay',
+    category: 'Digital Payments & Fintech',
+    smsActivateId: 'ap',
+    description: 'Amazon payment service',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'cred',
+    name: 'CRED',
+    category: 'Digital Payments & Fintech',
+    smsActivateId: 'cr',
+    description: 'Credit card bill payment platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
 
   // Entertainment & Media
   {
@@ -188,6 +296,15 @@ export const INDIAN_SERVICES: IndianService[] = [
     priority: 'medium'
   },
   {
+    id: 'jiohotstar',
+    name: 'Jio Hotstar',
+    category: 'Entertainment & Media',
+    smsActivateId: 'jh',
+    description: 'Jio entertainment platform',
+    expectedCount: 514,
+    priority: 'medium'
+  },
+  {
     id: 'sonyliv',
     name: 'Sony LIV',
     category: 'Entertainment & Media',
@@ -204,6 +321,24 @@ export const INDIAN_SERVICES: IndianService[] = [
     description: 'Global streaming platform',
     expectedCount: 25000,
     priority: 'high'
+  },
+  {
+    id: 'primevideo',
+    name: 'Prime Video',
+    category: 'Entertainment & Media',
+    smsActivateId: 'pv',
+    description: 'Amazon streaming service',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'voot',
+    name: 'Voot',
+    category: 'Entertainment & Media',
+    smsActivateId: 'vt',
+    description: 'Viacom18 streaming platform',
+    expectedCount: 0,
+    priority: 'medium'
   },
 
   // Gaming & Fantasy Sports
@@ -243,6 +378,15 @@ export const INDIAN_SERVICES: IndianService[] = [
     expectedCount: 2145,
     priority: 'medium'
   },
+  {
+    id: 'rummycircle',
+    name: 'RummyCircle',
+    category: 'Gaming & Fantasy Sports',
+    smsActivateId: 'rc',
+    description: 'Online rummy gaming platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
 
   // Healthcare & Pharmacy
   {
@@ -271,6 +415,24 @@ export const INDIAN_SERVICES: IndianService[] = [
     description: 'Healthcare platform',
     expectedCount: 2162,
     priority: 'high'
+  },
+  {
+    id: 'practo',
+    name: 'Practo',
+    category: 'Healthcare & Pharmacy',
+    smsActivateId: 'pr',
+    description: 'Healthcare appointment platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'netmeds',
+    name: 'Netmeds',
+    category: 'Healthcare & Pharmacy',
+    smsActivateId: 'nm',
+    description: 'Online pharmacy service',
+    expectedCount: 0,
+    priority: 'medium'
   },
 
   // Education
@@ -301,6 +463,24 @@ export const INDIAN_SERVICES: IndianService[] = [
     expectedCount: 2181,
     priority: 'medium'
   },
+  {
+    id: 'doubtnut',
+    name: 'Doubtnut',
+    category: 'Education',
+    smsActivateId: 'dn',
+    description: 'Educational doubt solving platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'toppr',
+    name: 'Toppr',
+    category: 'Education',
+    smsActivateId: 'tp',
+    description: 'Educational learning platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
 
   // Job & Services
   {
@@ -328,6 +508,118 @@ export const INDIAN_SERVICES: IndianService[] = [
     smsActivateId: 'jd',
     description: 'Local search service',
     expectedCount: 1135,
+    priority: 'medium'
+  },
+  {
+    id: 'bookmyshow',
+    name: 'BookMyShow',
+    category: 'Job & Services',
+    smsActivateId: 'bms',
+    description: 'Movie and event booking platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'makemytrip',
+    name: 'MakeMyTrip',
+    category: 'Job & Services',
+    smsActivateId: 'mmt',
+    description: 'Travel booking platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'goibibo',
+    name: 'Goibibo',
+    category: 'Job & Services',
+    smsActivateId: 'gb',
+    description: 'Travel and hotel booking platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+
+  // Banking & Financial Services
+  {
+    id: 'hdfcbank',
+    name: 'HDFC Bank',
+    category: 'Banking & Financial Services',
+    smsActivateId: 'hb',
+    description: 'HDFC Bank mobile banking',
+    expectedCount: 0,
+    priority: 'high'
+  },
+  {
+    id: 'icicibank',
+    name: 'ICICI Bank',
+    category: 'Banking & Financial Services',
+    smsActivateId: 'ib',
+    description: 'ICICI Bank mobile banking',
+    expectedCount: 0,
+    priority: 'high'
+  },
+  {
+    id: 'sbi',
+    name: 'State Bank of India',
+    category: 'Banking & Financial Services',
+    smsActivateId: 'sbi',
+    description: 'SBI mobile banking',
+    expectedCount: 0,
+    priority: 'high'
+  },
+  {
+    id: 'axisbank',
+    name: 'Axis Bank',
+    category: 'Banking & Financial Services',
+    smsActivateId: 'ab',
+    description: 'Axis Bank mobile banking',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+
+  // Social Media & Communication
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp',
+    category: 'Social Media & Communication',
+    smsActivateId: 'wa',
+    description: 'Messaging platform',
+    expectedCount: 25000,
+    priority: 'high'
+  },
+  {
+    id: 'instagram',
+    name: 'Instagram',
+    category: 'Social Media & Communication',
+    smsActivateId: 'ig',
+    description: 'Social media platform',
+    expectedCount: 25000,
+    priority: 'high'
+  },
+  {
+    id: 'facebook',
+    name: 'Facebook',
+    category: 'Social Media & Communication',
+    smsActivateId: 'fb',
+    description: 'Social media platform',
+    expectedCount: 25000,
+    priority: 'high'
+  },
+  {
+    id: 'telegram',
+    name: 'Telegram',
+    category: 'Social Media & Communication',
+    smsActivateId: 'tg',
+    description: 'Messaging platform',
+    expectedCount: 0,
+    priority: 'medium'
+  },
+  {
+    id: 'snapchat',
+    name: 'Snapchat',
+    category: 'Social Media & Communication',
+    smsActivateId: 'sc',
+    description: 'Social media platform',
+    expectedCount: 0,
     priority: 'medium'
   }
 ];
