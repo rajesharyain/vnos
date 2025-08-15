@@ -686,6 +686,21 @@ function App() {
             <h2 className="text-lg font-semibold text-white mb-4">
               📱 Products for {selectedCountry === 'usa' ? '🇺🇸 USA' : '🇮🇳 India'}
             </h2>
+            {/* Provider Selection - Moved to left panel */}
+            <div className="mb-4 p-3 bg-gray-700 rounded-lg">
+              <select
+                value={selectedProvider}
+                onChange={(e) => handleProviderChange(e.target.value)}
+                className="w-full bg-gray-600 border border-gray-500 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="sms-activate">SMS-Activate</option>
+                <option value="5sim">5SIM</option>
+                <option value="twilio">Twilio</option>
+                <option value="mock">Mock Provider</option>
+              </select>
+            </div>
+
+            {/* Dynamic Description - Moved below Provider section */}
             <p className="text-sm text-gray-400 mb-4">
               {selectedProvider === 'sms-activate' && selectedCountry === 'india' 
                 ? 'Real-time Indian services from SMS-Activate'
@@ -694,21 +709,6 @@ function App() {
                   : 'Select a product to get an Indian virtual number'
               }
             </p>
-
-            {/* Provider Selection - Moved to left panel */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">Provider</label>
-              <select
-                value={selectedProvider}
-                onChange={(e) => handleProviderChange(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="sms-activate">SMS-Activate</option>
-                <option value="5sim">5SIM</option>
-                <option value="twilio">Twilio</option>
-                <option value="mock">Mock Provider</option>
-              </select>
-            </div>
 
             {/* Search Input */}
             <div className="mb-4">
@@ -747,19 +747,7 @@ function App() {
                )}
              </div>
              
-                           {/* Availability Legend - Simple Text */}
-              <div className="flex items-center justify-start space-x-4 text-xs text-gray-400 -mt-2">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-green-400"></div>
-                  <span>Available</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                  <span>Unavailable</span>
-                </div>
-              </div>
-            
-            <div className="space-y-2">
+               <div className="space-y-2">
               {isLoadingProducts ? (
                 <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-2"></div>
