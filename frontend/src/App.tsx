@@ -499,6 +499,41 @@ function App() {
       await ApiService.selectProvider(providerId);
       setSelectedProvider(providerId);
       
+      // If switching to SMS-Activate, fetch operators from API
+      if (providerId === 'sms-activate') {
+        console.log('[Frontend] SMS-Activate provider detected, fetching dynamic operators...');
+        
+        // Determine country code based on selected country
+        const countryCode = selectedCountry === 'india' ? '22' : '1';
+        
+        // Fetch operators from your backend API
+        const response = await fetch(`http://localhost:5000/api/virtual-numbers/smsactivate/operators?country=${countryCode}`);
+        
+        if (!response.ok) {
+          throw new Error(`Backend error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.operators) {
+          // Convert the operator names to the format expected by your UI
+          const apiOperators = data.operators.map((operatorName: string, index: number) => ({
+            id: operatorName,
+            name: operatorName.charAt(0).toUpperCase() + operatorName.slice(1), // Capitalize first letter
+            price: '0.20', // Default price, you can update this later
+            selected: index === 0 // Select first operator by default
+          }));
+          
+          console.log(`[Frontend] Successfully fetched ${apiOperators.length} operators from SMS-Activate:`, apiOperators);
+          
+          // Update the operators state with dynamic operators from API
+          setOperators(apiOperators);
+          setSelectedOperator(apiOperators[0]?.id || 'any');
+        } else {
+          console.error('[Frontend] Backend returned error:', data.error);
+        }
+      }
+      
       console.log(`Successfully switched to provider: ${providerId}`);
     } catch (error) {
       console.error(`Failed to switch to provider ${providerId}:`, error);
@@ -591,12 +626,12 @@ function App() {
     console.log('Product selected:', productId);
     setSelectedProduct(productId);
     // Reset operator selection when product changes
-    setSelectedOperator(null);
+    //setSelectedOperator(null);
     // Update operators based on selected product
-    const productOperators = getProductOperators(productId, selectedProvider, selectedCountry);
-    console.log('New operators for product:', productId, productOperators);
+    //const productOperators = getProductOperators(productId, selectedProvider, selectedCountry);
+   // console.log('New operators for product:', productId, productOperators);
     // Force a new array reference to ensure React detects the change
-    setOperators([...productOperators]);
+    //setOperators([...productOperators]);
   };
 
   return (
