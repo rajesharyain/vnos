@@ -695,22 +695,20 @@ function App() {
               }
             </p>
 
-            {/* Background Worker Status */}
-            {selectedProvider === 'sms-activate' && selectedCountry === 'india' && (
-              <div className="mb-4 p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${isLoadingIndianServices ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
-                  <span className="text-sm text-blue-300">
-                    {isLoadingIndianServices ? 'Fetching real services...' : 'Live Indian services loaded'}
-                  </span>
-                </div>
-                {indianServicesError && (
-                  <p className="text-xs text-red-400 mt-1">
-                    Error: {indianServicesError}
-                  </p>
-                )}
-              </div>
-            )}
+            {/* Provider Selection - Moved to left panel */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-300 mb-2">Provider</label>
+              <select
+                value={selectedProvider}
+                onChange={(e) => handleProviderChange(e.target.value)}
+                className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="sms-activate">SMS-Activate</option>
+                <option value="5sim">5SIM</option>
+                <option value="twilio">Twilio</option>
+                <option value="mock">Mock Provider</option>
+              </select>
+            </div>
 
             {/* Search Input */}
             <div className="mb-4">
@@ -847,24 +845,10 @@ function App() {
                       {selectedProduct ? (apiProducts.find(p => p.id === selectedProduct)?.name || selectedProduct) : 'Select a service'}
                     </span>
                   </h3>
-                  
-                  {/* Provider Dropdown - Compact */}
-                  <div className="relative">
-                    <select
-                      value={selectedProvider}
-                      onChange={(e) => handleProviderChange(e.target.value)}
-                      className="bg-gray-700 border border-gray-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    >
-                      <option value="sms-activate">SMS-Activate</option>
-                      <option value="5sim">5SIM</option>
-                      <option value="twilio">Twilio</option>
-                      <option value="mock">Mock Provider</option>
-                    </select>
-                  </div>
                 </div>
               </div>
 
-              {/* Operator Selection - Compact Grid */}
+              {/* Operator Selection - Added back to right panel */}
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-medium text-gray-300">Select Operator</h4>
@@ -875,7 +859,7 @@ function App() {
                   )}
                 </div>
                 
-                {/* Compact Operator Grid - 5 columns for better space usage */}
+                {/* Operator Grid - 5 columns for better space usage */}
                 <div className="grid grid-cols-5 gap-2">
                   {operators.map((operator) => (
                     <div
