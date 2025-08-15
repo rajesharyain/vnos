@@ -457,6 +457,51 @@ export class FiveSimProvider implements VirtualNumberProvider {
   }
 
   /**
+   * Get real-time price for a specific product from 5SIM guest prices API
+   */
+  async getProductPrice(productId: string, countryId: string = 'usa'): Promise<{ cost: number; count: number } | null> {
+    try {
+      const response = await fetch(`${this.baseUrl}/guest/prices?country=${countryId}&product=${productId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.log(`[5SIM] Failed to get price for ${productId} in ${countryId}: ${response.status}`);
+        return null;
+      }
+
+      const result = await response.json() as any;
+      console.log(`[5SIM] Price response for ${productId} in ${countryId}:`, result);
+
+      // The API returns: { "country": { "product": { "operator": { "cost": X, "count": Y } } } }
+      // We need to find the first operator with available numbers for this product in this country
+      if (result[countryId] && result[countryId][productId]) {
+        const productData = result[countryId][productId];
+        
+        // Each product has multiple operators
+        for (const [operatorId, operatorData] of Object.entries(productData)) {
+          if (operatorData && typeof operatorData === 'object' && (operatorData as any).count > 0) {
+            console.log(`[5SIM] Found available ${productId} in ${countryId} with ${operatorId}: $${(operatorData as any).cost} (${(operatorData as any).count} available)`);
+            return {
+              cost: (operatorData as any).cost,
+              count: (operatorData as any).count
+            };
+          }
+        }
+      }
+
+      console.log(`[5SIM] No available numbers found for ${productId} in ${countryId}`);
+      return null;
+    } catch (error) {
+      console.error(`[5SIM] Error getting price for ${productId} in ${countryId}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Get account balance
    */
   async getBalance(): Promise<number> {

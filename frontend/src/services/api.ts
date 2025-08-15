@@ -296,4 +296,32 @@ export class ApiService {
       throw error;
     }
   }
+
+  /**
+   * Get real-time product price from 5SIM
+   */
+  static async getProductPrice(productId: string, countryId: string = 'usa'): Promise<{ usdCost: number; inrCost: number; count: number }> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/price/${productId}/${countryId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to get price: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        return {
+          usdCost: result.data.usdCost,
+          inrCost: result.data.inrCost,
+          count: result.data.count
+        };
+      } else {
+        throw new Error(result.message || 'Failed to get product price');
+      }
+    } catch (error) {
+      console.error('Error getting product price:', error);
+      throw error;
+    }
+  }
 } 

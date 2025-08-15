@@ -1,47 +1,36 @@
-// Test script to check 5SIM guest prices endpoint
-require('dotenv').config();
-
-async function testGuestPrices() {
-  const apiKey = process.env.FIVESIM_API_KEY;
-  const baseUrl = 'https://5sim.net/v1';
+// Test script to check 5SIM guest prices API structure
+const test5SimGuestPrices = async () => {
+  console.log('🧪 Testing 5SIM Guest Prices API...\n');
   
-  if (!apiKey) {
-    console.error('❌ FIVESIM_API_KEY not found in .env file');
-    return;
-  }
+  const products = ['uber', 'facebook', 'google', 'zomato'];
   
-  console.log('🧪 Testing 5SIM guest prices endpoint...\n');
-  
-  const testCountries = ['usa', 'india', 'england', 'canada'];
-  
-  for (const country of testCountries) {
-    console.log(`🔍 Testing country: ${country}`);
+  for (const product of products) {
+    console.log(`Testing: ${product}`);
     
     try {
-      const response = await fetch(`${baseUrl}/guest/prices?country=${country}`);
+      const response = await fetch(`https://5sim.net/v1/guest/prices?product=${product}`);
       
       if (response.ok) {
-        const data = await response.json();
-        console.log(`✅ ${country} response status: ${response.status}`);
-        console.log(`📊 ${country} response keys:`, Object.keys(data));
+        const result = await response.json();
+        console.log(`✅ ${product}: Status ${response.status}`);
+        console.log(`Response keys:`, Object.keys(result));
         
-        if (data[country]) {
-          console.log(`📱 ${country} products:`, Object.keys(data[country]));
-          console.log(`💰 ${country} sample product data:`, JSON.stringify(data[country], null, 2));
-        } else {
-          console.log(`❌ ${country} not found in response`);
+        if (result[product]) {
+          console.log(`Product data keys:`, Object.keys(result[product]));
+          console.log(`Sample virtual type:`, Object.keys(result[product])[0]);
         }
+        
+        console.log(`Raw response:`, JSON.stringify(result, null, 2));
       } else {
-        console.log(`❌ ${country} failed: ${response.status} ${response.statusText}`);
+        console.log(`❌ ${product}: ${response.status} ${response.statusText}`);
       }
-      
-      console.log(''); // Empty line for readability
-      
     } catch (error) {
-      console.error(`❌ ${country} error:`, error.message);
+      console.log(`❌ ${product}: Network error - ${error.message}`);
     }
+    
+    console.log('\n' + '='.repeat(50) + '\n');
   }
-}
+};
 
 // Run the test
-testGuestPrices(); 
+test5SimGuestPrices().catch(console.error); 

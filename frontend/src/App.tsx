@@ -20,17 +20,18 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOperator, setSelectedOperator] = useState<string | null>('any'); // Default to 'any' operator
   const [pollingIntervals, setPollingIntervals] = useState<Map<string, NodeJS.Timeout>>(new Map());
+  const [productPrices, setProductPrices] = useState<Map<string, { usdCost: number; inrCost: number; count: number }>>(new Map());
 
   // Get operators for a specific product (simplified for testing)
   const getProductOperators = (productId: string) => {
     // For USA testing, return common operators
     if (productId === 'facebook' || productId === 'google') {
       return [
-        { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '$0.50', selected: false },
-        { id: 'verizon', name: 'Verizon', description: 'Verizon Wireless', price: '$0.60', selected: false },
-        { id: 'att', name: 'AT&T', description: 'AT&T Mobility', price: '$0.55', selected: false },
-        { id: 'tmobile', name: 'T-Mobile', description: 'T-Mobile US', price: '$0.50', selected: false },
-        { id: 'sprint', name: 'Sprint', description: 'Sprint Corporation', price: '$0.45', selected: false }
+        { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '$1.50', selected: false },
+        { id: 'verizon', name: 'Verizon', description: 'Verizon Wireless', price: '$2.00', selected: false },
+        { id: 'att', name: 'AT&T', description: 'AT&T Mobility', price: '$1.80', selected: false },
+        { id: 'tmobile', name: 'T-Mobile', description: 'T-Mobile US', price: '$1.60', selected: false },
+        { id: 'sprint', name: 'Sprint', description: 'Sprint Corporation', price: '$1.40', selected: false }
       ];
     }
     
@@ -58,27 +59,46 @@ function App() {
     console.log(`Country changed to: ${country}`);
   };
 
-  // Get products based on selected country
+  // Convert USD to INR (approximate rate: 1 USD = 83 INR)
+  const convertToINR = (usdPrice: string): string => {
+    // Extract the numeric value from price strings like "$0.70" or "₹6"
+    const numericValue = parseFloat(usdPrice.replace(/[^\d.]/g, ''));
+    
+    if (usdPrice.includes('$')) {
+      // Convert USD to INR (1 USD ≈ 83 INR)
+      const inrValue = Math.round(numericValue * 83);
+      return `₹${inrValue}`;
+    } else if (usdPrice.includes('₹')) {
+      // Already in INR, return as is
+      return usdPrice;
+    } else {
+      // Default case, assume USD
+      const inrValue = Math.round(numericValue * 83);
+      return `₹${inrValue}`;
+    }
+  };
+
+  // Get products based on selected country with real-time pricing
   const getProductsForCountry = (country: string) => {
     if (country === 'usa') {
       return [
-        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', price: '$0.70', icon: '🚗' },
-        { id: 'facebook', name: 'Facebook', description: 'Social media platform OTP', price: '$0.50', icon: '📘' },
-        { id: 'google', name: 'Google', description: 'Google services OTP', price: '$0.75', icon: '🔍' },
-        { id: 'twitter', name: 'Twitter', description: 'Social media OTP', price: '$0.30', icon: '🐦' },
-        { id: 'whatsapp', name: 'WhatsApp', description: 'Messaging OTP', price: '$0.50', icon: '💬' }
+        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
+        { id: 'facebook', name: 'Facebook', description: 'Social media platform OTP', icon: '📘' },
+        { id: 'google', name: 'Google', description: 'Google services OTP', icon: '🔍' },
+        { id: 'twitter', name: 'Twitter', description: 'Social media OTP', icon: '🐦' },
+        { id: 'whatsapp', name: 'WhatsApp', description: 'Messaging OTP', icon: '💬' }
       ];
     } else {
       // India products - based on actual 5SIM availability
       return [
-        { id: 'zomato', name: 'Zomato', description: 'Food delivery OTP', price: '₹6', icon: '🍕' },
-        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', price: '₹7', icon: '🚗' },
-        { id: 'ola', name: 'Ola', description: 'Ride-hailing OTP', price: '₹6', icon: '🚙' },
-        { id: 'paytm', name: 'Paytm', description: 'Digital payments OTP', price: '₹6', icon: '💳' },
-        { id: 'phonepe', name: 'PhonePe', description: 'Digital payments OTP', price: '₹6', icon: '📱' },
-        { id: 'amazon', name: 'Amazon', description: 'E-commerce OTP', price: '₹6', icon: '📦' },
-        { id: 'flipkart', name: 'Flipkart', description: 'E-commerce OTP', price: '₹6', icon: '🛒' },
-        { id: 'swiggy', name: 'Swiggy', description: 'Food delivery OTP', price: '₹6', icon: '🛵' }
+        { id: 'zomato', name: 'Zomato', description: 'Food delivery OTP', icon: '🍕' },
+        { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
+        { id: 'ola', name: 'Ola', description: 'Ride-hailing OTP', icon: '🚙' },
+        { id: 'paytm', name: 'Paytm', description: 'Digital payments OTP', icon: '💳' },
+        { id: 'phonepe', name: 'PhonePe', description: 'Digital payments OTP', icon: '📱' },
+        { id: 'amazon', name: 'Amazon', description: 'E-commerce OTP', icon: '📦' },
+        { id: 'flipkart', name: 'Flipkart', description: 'E-commerce OTP', icon: '🛒' },
+        { id: 'swiggy', name: 'Swiggy', description: 'Food delivery OTP', icon: '🛵' }
       ];
     }
   };
@@ -94,15 +114,36 @@ function App() {
 
   const [operators, setOperators] = useState(() => getProductOperators('uber')); // Default to uber operators since it's available
 
+  // Fetch real-time prices for products
+  const fetchProductPrices = async (products: Array<{ id: string; name: string; description: string; icon: string }>) => {
+    const newPrices = new Map<string, { usdCost: number; inrCost: number; count: number }>();
+    
+    for (const product of products) {
+      try {
+        const priceData = await ApiService.getProductPrice(product.id, selectedCountry);
+        newPrices.set(product.id, priceData);
+      } catch (error) {
+        console.log(`Failed to get price for ${product.id}:`, error);
+        // Set default price if API fails
+        newPrices.set(product.id, { usdCost: 5, inrCost: 415, count: 1 });
+      }
+    }
+    
+    setProductPrices(newPrices);
+  };
+
   // Update products and operators when country changes
   useEffect(() => {
     const newProducts = getProductsForCountry(selectedCountry);
     setApiProducts(newProducts.map(product => ({
       id: product.id,
       name: product.name,
-      cost: parseFloat(product.price.replace(/[^0-9.]/g, '')),
+      cost: 5, // Default cost, will be updated with real prices
       count: 1
     })));
+    
+    // Fetch real-time prices for new products
+    fetchProductPrices(newProducts);
     
     // Update operators based on first product
     if (newProducts.length > 0) {
@@ -402,7 +443,13 @@ function App() {
                       </div>
                       <div className="flex items-center space-x-2">
                         <span className={`text-lg font-bold ${selectedProduct === product.id ? 'text-purple-300' : 'text-green-400'}`}>
-                          {product.price}
+                          {(() => {
+                            const priceData = productPrices.get(product.id);
+                            if (priceData) {
+                              return `₹${priceData.inrCost}`;
+                            }
+                            return '₹415'; // Default price
+                          })()}
                         </span>
                         {selectedProduct === product.id && (
                           <CheckCircle className="w-4 h-4 text-purple-400" />
@@ -410,7 +457,13 @@ function App() {
                       </div>
                     </div>
                     <div className="mt-2 text-xs text-gray-400">
-                      1 available
+                      {(() => {
+                        const priceData = productPrices.get(product.id);
+                        if (priceData && priceData.count > 0) {
+                          return `${priceData.count} available`;
+                        }
+                        return '1 available';
+                      })()}
                     </div>
                   </div>
                 ))
@@ -495,7 +548,7 @@ function App() {
                   onClick={() => handleOperatorSelect(operator.id)}
                 >
                   <h3 className="text-white font-medium mb-2">{operator.name}</h3>
-                  <p className="text-2xl font-bold text-green-400">{operator.price}</p>
+                  <p className="text-2xl font-bold text-green-400">{convertToINR(operator.price)}</p>
                 </div>
               ))}
             </div>

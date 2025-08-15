@@ -5,6 +5,647 @@ import { CreateVirtualNumberResponse, GetOTPsResponse, CancelNumberResponse, Res
 const router = Router();
 const virtualNumberService = new VirtualNumberService();
 
+// Get available countries for SMS-Activate
+router.get('/countries', async (req, res) => {
+  try {
+    const virtualNumberService = new VirtualNumberService();
+    // Try to get SMS-Activate provider specifically
+    const provider = virtualNumberService.getProviderById('sms-activate');
+    
+    if (provider && 'getAvailableCountries' in provider) {
+      const countries = await (provider as any).getAvailableCountries();
+      res.json({
+        success: true,
+        data: countries
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Provider does not support country listing'
+      });
+    }
+  } catch (error) {
+    console.error('[API] Error getting countries:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get countries'
+    });
+  }
+});
+
+// Get available services for a country
+router.get('/services/:country', async (req, res) => {
+  try {
+    const { country } = req.params;
+    const virtualNumberService = new VirtualNumberService();
+    const provider = virtualNumberService.getProviderById('sms-activate');
+    
+    if (provider && 'getAvailableServices' in provider) {
+      const services = await (provider as any).getAvailableServices(country);
+      res.json({
+        success: true,
+        data: services
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Provider does not support service listing'
+      });
+    }
+  } catch (error) {
+    console.error('[API] Error getting services:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get services'
+    });
+  }
+});
+
+// Get account balance
+router.get('/balance', async (req, res) => {
+  try {
+    const virtualNumberService = new VirtualNumberService();
+    const provider = virtualNumberService.getProviderById('sms-activate');
+    
+    if (provider && 'getBalance' in provider) {
+      const balance = await (provider as any).getBalance();
+      res.json({
+        success: true,
+        data: balance
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Provider does not support balance checking'
+      });
+    }
+  } catch (error) {
+    console.error('[API] Error getting balance:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get balance'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/virtual-numbers/indian-services:
+ *   get:
+ *     summary: Get all Indian services with real-time availability
+ *     description: |
+ *       Retrieve comprehensive data for all high-value Indian services including real-time pricing, 
+ *       availability counts, and categorization. This endpoint provides live data from SMS-Activate 
+ *       for 40+ premium Indian services across 9 business categories.
+ *       
+ *       **📱 Services Include:**
+ *       - **E-commerce**: Amazon, Flipkart, Myntra, Snapdeal, Meesho
+ *       - **Food Delivery**: Swiggy, Zomato, Zepto, BigBasket
+ *       - **Transportation**: Ola, Uber, Rapido
+ *       - **Payments**: PayTM, PhonePe, Google Pay, Mobikwik
+ *       - **Entertainment**: Disney+ Hotstar, Netflix, Jio Cinema, Sony LIV
+ *       - **Gaming**: Dream11, MPL, WinZO, Ludo Supreme
+ *       - **Healthcare**: 1mg, PharmEasy, Apollo
+ *       - **Education**: BYJU'S, Unacademy, Vedantu
+ *       - **Services**: Naukri, Urban Company, Just Dial
+ *       
+ *       **💰 Real-time Data:**
+ *       - Live USD to INR conversion (1 USD = ₹83)
+ *       - Current availability counts
+ *       - Service status (available/unavailable)
+ *       - Category-based organization
+ *       
+ *       **🔐 Authentication**: No client-side API key required! Backend automatically uses SMS-Activate API key.
+ *     tags: [Indian Services]
+ *     responses:
+ *       200:
+ *         description: Indian services retrieved successfully with real-time data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                           description: Total number of services
+ *                           example: 40
+ *                         available:
+ *                           type: number
+ *                           description: Number of currently available services
+ *                           example: 15
+ *                         unavailable:
+ *                           type: number
+ *                           description: Number of currently unavailable services
+ *                           example: 25
+ *                         categories:
+ *                           type: number
+ *                           description: Number of business categories
+ *                           example: 9
+ *                     services:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "amazon"
+ *                           name:
+ *                             type: string
+ *                             example: "Amazon"
+ *                           category:
+ *                             type: string
+ *                             example: "E-commerce & Shopping"
+ *                           smsActivateId:
+ *                             type: string
+ *                             example: "am"
+ *                           description:
+ *                             type: string
+ *                             example: "Major e-commerce platform"
+ *                           expectedCount:
+ *                             type: number
+ *                             example: 25000
+ *                           priority:
+ *                             type: string
+ *                             example: "high"
+ *                           realTimeData:
+ *                             type: object
+ *                             properties:
+ *                               cost:
+ *                                 type: number
+ *                                 example: 0.07
+ *                               count:
+ *                                 type: number
+ *                                 example: 8
+ *                               usdCost:
+ *                                 type: number
+ *                                 example: 0.07
+ *                               inrCost:
+ *                                 type: number
+ *                                 example: 6
+ *                               available:
+ *                                 type: boolean
+ *                                 example: true
+ *       400:
+ *         description: SMS-Activate provider not available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "SMS-Activate provider not available"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to get Indian services"
+ */
+// Get Indian services with real-time availability
+router.get('/indian-services', async (req, res) => {
+  try {
+    const { INDIAN_SERVICES, getServicesByCategory } = await import('../config/indianServices');
+    
+    // Get SMS-Activate provider
+    const virtualNumberService = new VirtualNumberService();
+    const provider = virtualNumberService.getProviderById('sms-activate');
+    
+    if (!provider || !('getServicePrice' in provider)) {
+      return res.status(400).json({
+        success: false,
+        message: 'SMS-Activate provider not available'
+      });
+    }
+
+    const servicesWithData = [];
+    const countryId = '22'; // India
+
+    // Fetch real-time data for each service
+    for (const service of INDIAN_SERVICES) {
+      try {
+        const priceData = await (provider as any).getServicePrice(service.smsActivateId, countryId);
+        
+        if (priceData) {
+          servicesWithData.push({
+            ...service,
+            realTimeData: {
+              cost: priceData.cost,
+              count: priceData.count,
+              usdCost: priceData.cost,
+              inrCost: Math.round(priceData.cost * 83), // Convert to INR
+              available: priceData.count > 0
+            }
+          });
+        } else {
+          servicesWithData.push({
+            ...service,
+            realTimeData: {
+              cost: 0,
+              count: 0,
+              usdCost: 0,
+              inrCost: 0,
+              available: false
+            }
+          });
+        }
+      } catch (error) {
+        console.warn(`[API] Failed to get data for ${service.name}:`, error);
+        servicesWithData.push({
+          ...service,
+          realTimeData: {
+            cost: 0,
+            count: 0,
+            usdCost: 0,
+            inrCost: 0,
+            available: false
+          }
+        });
+      }
+    }
+
+    // Group by category
+    const categorizedServices = {};
+    for (const service of servicesWithData) {
+      if (!categorizedServices[service.category]) {
+        categorizedServices[service.category] = [];
+      }
+      categorizedServices[service.category].push(service);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        services: servicesWithData,
+        categorized: categorizedServices,
+        summary: {
+          total: servicesWithData.length,
+          available: servicesWithData.filter(s => s.realTimeData.available).length,
+          unavailable: servicesWithData.filter(s => !s.realTimeData.available).length,
+          categories: Object.keys(categorizedServices).length
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[API] Error getting Indian services:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get Indian services'
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/virtual-numbers/indian-services/{category}:
+ *   get:
+ *     summary: Get Indian services by category
+ *     description: |
+ *       Retrieve all services within a specific business category with real-time pricing and availability data.
+ *       
+ *       **📁 Available Categories:**
+ *       - `E-commerce & Shopping` - Amazon, Flipkart, Myntra, Snapdeal, Meesho
+ *       - `Food Delivery & Quick Commerce` - Swiggy, Zomato, Zepto, BigBasket
+ *       - `Transportation & Ride-sharing` - Ola, Uber, Rapido
+ *       - `Digital Payments & Fintech` - PayTM, PhonePe, Google Pay, Mobikwik
+ *       - `Entertainment & Media` - Disney+ Hotstar, Netflix, Jio Cinema, Sony LIV
+ *       - `Gaming & Fantasy Sports` - Dream11, MPL, WinZO, Ludo Supreme
+ *       - `Healthcare & Pharmacy` - 1mg, PharmEasy, Apollo
+ *       - `Education` - BYJU'S, Unacademy, Vedantu
+ *       - `Job & Services` - Naukri, Urban Company, Just Dial
+ *       
+ *       **💰 Real-time Data:**
+ *       - Live USD to INR conversion
+ *       - Current availability counts
+ *       - Service status (available/unavailable)
+ *       
+ *       **🔐 Authentication**: No client-side API key required! Backend automatically uses SMS-Activate API key.
+ *     tags: [Indian Services]
+ *     parameters:
+ *       - in: path
+ *         name: category
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Business category name (URL encoded)
+ *         example: "E-commerce & Shopping"
+ *     responses:
+ *       200:
+ *         description: Category services retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     category:
+ *                       type: string
+ *                       example: "E-commerce & Shopping"
+ *                     services:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: "amazon"
+ *                           name:
+ *                             type: string
+ *                             example: "Amazon"
+ *                           category:
+ *                             type: string
+ *                             example: "E-commerce & Shopping"
+ *                           smsActivateId:
+ *                             type: string
+ *                             example: "am"
+ *                           description:
+ *                             type: string
+ *                             example: "Major e-commerce platform"
+ *                           expectedCount:
+ *                             type: number
+ *                             example: 25000
+ *                           priority:
+ *                             type: string
+ *                             example: "high"
+ *                           realTimeData:
+ *                             type: object
+ *                             properties:
+ *                               cost:
+ *                                 type: number
+ *                                 example: 0.07
+ *                               count:
+ *                                 type: number
+ *                                 example: 8
+ *                               usdCost:
+ *                                 type: number
+ *                                 example: 0.07
+ *                               inrCost:
+ *                                 type: number
+ *                                 example: 6
+ *                               available:
+ *                                 type: boolean
+ *                                 example: true
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: number
+ *                           description: Total services in category
+ *                           example: 5
+ *                         available:
+ *                           type: number
+ *                           description: Available services in category
+ *                           example: 2
+ *                         unavailable:
+ *                           type: number
+ *                           description: Unavailable services in category
+ *                           example: 3
+ *       400:
+ *         description: SMS-Activate provider not available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "SMS-Activate provider not available"
+ *       404:
+ *         description: Category not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Category 'E-commerce & Shopping' not found"
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to get Indian services"
+ */
+// Get Indian services by category
+router.get('/indian-services/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    const { getServicesByCategory } = await import('../config/indianServices');
+    
+    const services = getServicesByCategory(category);
+    if (services.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Category '${category}' not found`
+      });
+    }
+
+    // Get SMS-Activate provider
+    const virtualNumberService = new VirtualNumberService();
+    const provider = virtualNumberService.getProviderById('sms-activate');
+    
+    if (!provider || !('getServicePrice' in provider)) {
+      return res.status(400).json({
+        success: false,
+        message: 'SMS-Activate provider not available'
+      });
+    }
+
+    const servicesWithData = [];
+    const countryId = '22'; // India
+
+    // Fetch real-time data for services in this category
+    for (const service of services) {
+      try {
+        const priceData = await (provider as any).getServicePrice(service.smsActivateId, countryId);
+        
+        if (priceData) {
+          servicesWithData.push({
+            ...service,
+            realTimeData: {
+              cost: priceData.cost,
+              count: priceData.count,
+              usdCost: priceData.cost,
+              inrCost: Math.round(priceData.cost * 83),
+              available: priceData.count > 0
+            }
+          });
+        } else {
+          servicesWithData.push({
+            ...service,
+            realTimeData: {
+              cost: 0,
+              count: 0,
+              usdCost: 0,
+              inrCost: 0,
+              available: false
+            }
+          });
+        }
+      } catch (error) {
+        console.warn(`[API] Failed to get data for ${service.name}:`, error);
+        servicesWithData.push({
+          ...service,
+          realTimeData: {
+            cost: 0,
+            count: 0,
+            usdCost: 0,
+            inrCost: 0,
+            available: false
+          }
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        category,
+        services: servicesWithData,
+        summary: {
+          total: servicesWithData.length,
+          available: servicesWithData.filter(s => s.realTimeData.available).length,
+          unavailable: servicesWithData.filter(s => !s.realTimeData.available).length
+        }
+      }
+    });
+  } catch (error) {
+    console.error(`[API] Error getting Indian services for category ${req.params.category}:`, error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get Indian services'
+    });
+  }
+});
+router.get('/indian-services/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    const { getServicesByCategory } = await import('../config/indianServices');
+    
+    const services = getServicesByCategory(category);
+    if (services.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `Category '${category}' not found`
+      });
+    }
+
+    // Get SMS-Activate provider
+    const virtualNumberService = new VirtualNumberService();
+    const provider = virtualNumberService.getProviderById('sms-activate');
+    
+    if (!provider || !('getServicePrice' in provider)) {
+      return res.status(400).json({
+        success: false,
+        message: 'SMS-Activate provider not available'
+      });
+    }
+
+    const servicesWithData = [];
+    const countryId = '22'; // India
+
+    // Fetch real-time data for services in this category
+    for (const service of services) {
+      try {
+        const priceData = await (provider as any).getServicePrice(service.smsActivateId, countryId);
+        
+        if (priceData) {
+          servicesWithData.push({
+            ...service,
+            realTimeData: {
+              cost: priceData.cost,
+              count: priceData.count,
+              usdCost: priceData.cost,
+              inrCost: Math.round(priceData.cost * 83),
+              available: priceData.count > 0
+            }
+          });
+        } else {
+          servicesWithData.push({
+            ...service,
+            realTimeData: {
+              cost: 0,
+              count: 0,
+              usdCost: 0,
+              inrCost: 0,
+              available: false
+            }
+          });
+        }
+      } catch (error) {
+        console.warn(`[API] Failed to get data for ${service.name}:`, error);
+        servicesWithData.push({
+          ...service,
+          realTimeData: {
+            cost: 0,
+            count: 0,
+            usdCost: 0,
+            inrCost: 0,
+            available: false
+          }
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        category,
+        services: servicesWithData,
+        summary: {
+          total: servicesWithData.length,
+          available: servicesWithData.filter(s => s.realTimeData.available).length,
+          unavailable: servicesWithData.filter(s => !s.realTimeData.available).length
+        }
+      }
+    });
+  } catch (error) {
+    console.error(`[API] Error getting Indian services for category ${req.params.category}:`, error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get Indian services'
+    });
+  }
+});
+
 /**
  * @swagger
  * /api/virtual-numbers:
@@ -726,6 +1367,229 @@ router.delete('/:number', async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: 'Failed to cancel virtual number'
+    });
+  }
+});
+
+  // Get real-time product price from 5SIM
+  router.get('/price/:product/:country', async (req, res) => {
+    try {
+      const { product, country } = req.params;
+      console.log(`[API] Getting price for product: ${product} in country: ${country}`);
+      
+      const virtualNumberService = new VirtualNumberService();
+      const provider = await virtualNumberService.getProvider();
+      
+      if (provider && 'getProductPrice' in provider) {
+        const priceData = await (provider as any).getProductPrice(product, country);
+        
+        if (priceData) {
+          // Convert USD to INR (1 USD ≈ 83 INR)
+          const inrCost = Math.round(priceData.cost * 83);
+          
+          res.json({
+            success: true,
+            data: {
+              product,
+              country,
+              usdCost: priceData.cost,
+              inrCost: inrCost,
+              count: priceData.count,
+              currency: 'INR'
+            }
+          });
+        } else {
+          res.status(404).json({
+            success: false,
+            message: `Price not available for product: ${product} in country: ${country}`
+          });
+        }
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'Provider does not support price fetching'
+        });
+      }
+    } catch (error) {
+      console.error('[API] Error getting product price:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get product price'
+      });
+    }
+  });
+
+  // Get available countries for SMS-Activate
+  router.get('/countries', async (req, res) => {
+    try {
+      const virtualNumberService = new VirtualNumberService();
+      const provider = await virtualNumberService.getProvider();
+      
+      if (provider && 'getAvailableCountries' in provider) {
+        const countries = await (provider as any).getAvailableCountries();
+        res.json({
+          success: true,
+          data: countries
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'Provider does not support country listing'
+        });
+      }
+    } catch (error) {
+      console.error('[API] Error getting countries:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get countries'
+      });
+    }
+  });
+
+  // Get available services for a country
+  router.get('/services/:country', async (req, res) => {
+    try {
+      const { country } = req.params;
+      const virtualNumberService = new VirtualNumberService();
+      const provider = await virtualNumberService.getProvider();
+      
+      if (provider && 'getAvailableServices' in provider) {
+        const services = await (provider as any).getAvailableServices(country);
+        res.json({
+          success: true,
+          data: services
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'Provider does not support service listing'
+        });
+      }
+    } catch (error) {
+      console.error('[API] Error getting services:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get services'
+      });
+    }
+  });
+
+  // Get account balance
+  router.get('/balance', async (req, res) => {
+    try {
+      const virtualNumberService = new VirtualNumberService();
+      const provider = await virtualNumberService.getProvider();
+      
+      if (provider && 'getBalance' in provider) {
+        const balance = await (provider as any).getBalance();
+        res.json({
+          success: true,
+          data: balance
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: 'Provider does not support balance checking'
+        });
+      }
+    } catch (error) {
+      console.error('[API] Error getting balance:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get balance'
+      });
+    }
+  });
+
+// Get Indian services with real-time availability
+router.get('/indian-services', async (req, res) => {
+  try {
+    const { INDIAN_SERVICES, getServicesByCategory } = await import('../config/indianServices');
+    
+    // Get SMS-Activate provider
+    const virtualNumberService = new VirtualNumberService();
+    const provider = virtualNumberService.getProviderById('sms-activate');
+    
+    if (!provider || !('getServicePrice' in provider)) {
+      return res.status(400).json({
+        success: false,
+        message: 'SMS-Activate provider not available'
+      });
+    }
+
+    const servicesWithData = [];
+    const countryId = '22'; // India
+
+    // Fetch real-time data for each service
+    for (const service of INDIAN_SERVICES) {
+      try {
+        const priceData = await (provider as any).getServicePrice(service.smsActivateId, countryId);
+        
+        if (priceData) {
+          servicesWithData.push({
+            ...service,
+            realTimeData: {
+              cost: priceData.cost,
+              count: priceData.count,
+              usdCost: priceData.cost,
+              inrCost: Math.round(priceData.cost * 83), // Convert to INR
+              available: priceData.count > 0
+            }
+          });
+        } else {
+          servicesWithData.push({
+            ...service,
+            realTimeData: {
+              cost: 0,
+              count: 0,
+              usdCost: 0,
+              inrCost: 0,
+              available: false
+            }
+          });
+        }
+      } catch (error) {
+        console.warn(`[API] Failed to get data for ${service.name}:`, error);
+        servicesWithData.push({
+          ...service,
+          realTimeData: {
+            cost: 0,
+            count: 0,
+            usdCost: 0,
+            inrCost: 0,
+            available: false
+          }
+        });
+      }
+    }
+
+    // Group by category
+    const categorizedServices = {};
+    for (const service of servicesWithData) {
+      if (!categorizedServices[service.category]) {
+        categorizedServices[service.category] = [];
+      }
+      categorizedServices[service.category].push(service);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        services: servicesWithData,
+        categorized: categorizedServices,
+        summary: {
+          total: servicesWithData.length,
+          available: servicesWithData.filter(s => s.realTimeData.available).length,
+          unavailable: servicesWithData.filter(s => !s.realTimeData.available).length,
+          categories: Object.keys(categorizedServices).length
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[API] Error getting Indian services:', error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to get Indian services'
     });
   }
 });

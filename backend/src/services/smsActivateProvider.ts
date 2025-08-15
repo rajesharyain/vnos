@@ -4,17 +4,19 @@ import { VirtualNumberProvider, OTP } from '../types';
  * SMS-Activate Virtual Number Provider
  * 
  * Provides virtual numbers through SMS-Activate.io
- * Cost: $0.20-0.80 per number
- * Coverage: Multiple countries including India (country code 22)
+ * API Documentation: https://sms-activate.io/api2
  * 
- * API Documentation: https://sms-activate.io/en/api
+ * Features:
+ * - India as default country (country code 22)
+ * - Multiple service support (WhatsApp, Telegram, etc.)
+ * - Real-time pricing and availability
+ * - OTP extraction and management
  */
-// Temporarily remove interface implementation to avoid TypeScript errors
-export class SMSActivateProvider /* implements VirtualNumberProvider */ {
+export class SMSActivateProvider implements VirtualNumberProvider {
   private apiKey: string;
   private baseUrl: string;
-  private activeNumbers: Map<string, { activationId: string; otps: OTP[] }> = new Map();
-  private availableCountries: string[] = ['22', '0', '187', '196', '199']; // India (22) first, then fallbacks
+  private activeNumbers: Map<string, { activationId: string; otps: OTP[]; service: string }> = new Map();
+  private defaultCountry: string = '22'; // India by default
 
   constructor() {
     this.apiKey = process.env.SMS_ACTIVATE_API_KEY || '';
@@ -27,32 +29,31 @@ export class SMSActivateProvider /* implements VirtualNumberProvider */ {
 
   /**
    * Request a new virtual number from SMS-Activate
+   * @param service - Service name (e.g., 'wa' for WhatsApp, 'tg' for Telegram)
+   * @param country - Country code (defaults to India '22')
    */
-  async requestNumber(): Promise<string> {
+  async requestNumber(service: string = 'wa', country: string = this.defaultCountry): Promise<string> {
     try {
-      console.log('[SMS-Activate] Requesting virtual number...');
+      console.log(`[SMS-Activate] Requesting ${service} number for country ${country}...`);
       
-      // Try to get available countries first
-      const countries = await this.getAvailableCountries();
-      let selectedCountry = '22'; // Default to India (country code 22)
+      // Validate country and service availability
+      const availableServices = await this.getAvailableServices(country);
+      const targetService = availableServices.find(s => s.id === service);
       
-      // Look for India first, then fallback to available countries
-      const india = countries.find(c => c.id === '22' || c.name.toLowerCase().includes('india'));
-      if (india) {
-        selectedCountry = india.id;
-        console.log(`[SMS-Activate] Using India (${india.name}) for number request`);
-      } else {
-        // Fallback to other available countries
-        selectedCountry = '0'; // Cheapest option
-        console.log(`[SMS-Activate] India not available, using fallback country: ${selectedCountry}`);
+      if (!targetService) {
+        throw new Error(`Service ${service} not available in country ${country}`);
+      }
+      
+      if (targetService.count === 0) {
+        throw new Error(`No ${service} numbers available in country ${country} at the moment`);
       }
 
       // Request activation
       const params = new URLSearchParams({
         api_key: this.apiKey,
         action: 'getNumber',
-        service: 'wa', // WhatsApp service (can be changed to other services)
-        country: selectedCountry,
+        service: service,
+        country: country,
         operator: 'any', // Any operator
         ref: 'virtualno' // Referral (optional)
       });
@@ -72,21 +73,26 @@ export class SMSActivateProvider /* implements VirtualNumberProvider */ {
           // Store the activation for OTP checking
           this.activeNumbers.set(phoneNumber, {
             activationId,
-            otps: []
+            otps: [],
+            service
           });
 
-          console.log(`[SMS-Activate] Successfully requested number: ${phoneNumber} (Activation ID: ${activationId})`);
+          console.log(`[SMS-Activate] Successfully requested ${service} number: ${phoneNumber} (Activation ID: ${activationId})`);
           return phoneNumber;
         }
       }
 
-      // Handle errors
+      // Handle specific error codes
       if (result.startsWith('BAD_KEY')) {
         throw new Error('Invalid API key');
       } else if (result.startsWith('NO_NUMBERS')) {
-        throw new Error(`No available numbers in country ${selectedCountry} at the moment`);
+        throw new Error(`No available ${service} numbers in country ${country} at the moment`);
       } else if (result.startsWith('NO_BALANCE')) {
         throw new Error('Insufficient account balance');
+      } else if (result.startsWith('WRONG_SERVICE')) {
+        throw new Error(`Invalid service: ${service}`);
+      } else if (result.startsWith('WRONG_COUNTRY')) {
+        throw new Error(`Invalid country code: ${country}`);
       } else {
         throw new Error(`SMS-Activate error: ${result}`);
       }
@@ -291,9 +297,9 @@ export class SMSActivateProvider /* implements VirtualNumberProvider */ {
   }
 
   /**
-   * Get available countries and services
+   * Get available countries
    */
-  async getAvailableCountries(): Promise<Array<{ id: string; name: string; services: string[] }>> {
+  async getAvailableCountries(): Promise<Array<{ id: string; name: string; rus: string; eng: string }>> {
     try {
       const params = new URLSearchParams({
         api_key: this.apiKey,
@@ -303,21 +309,17 @@ export class SMSActivateProvider /* implements VirtualNumberProvider */ {
       const response = await fetch(`${this.baseUrl}?${params.toString()}`);
       const result = await response.text();
       
-      // Parse countries response
       try {
         const countries = JSON.parse(result);
         return Object.entries(countries).map(([id, country]: [string, any]) => ({
           id,
           name: country.eng || country.rus || 'Unknown',
-          services: []
+          rus: country.rus || '',
+          eng: country.eng || ''
         }));
       } catch (parseError) {
-        // Fallback to semicolon format
-        const countries = result.split(';').filter(c => c.trim()).map(country => {
-          const parts = country.split(':');
-          return { id: parts[0], name: parts[1] || 'Unknown', services: [] };
-        });
-        return countries;
+        console.warn('[SMS-Activate] Failed to parse countries JSON, using fallback format');
+        return [];
       }
     } catch (error) {
       console.error('[SMS-Activate] Error getting countries:', error);
@@ -326,9 +328,9 @@ export class SMSActivateProvider /* implements VirtualNumberProvider */ {
   }
 
   /**
-   * Get available services for a country
+   * Get available services and prices for a country
    */
-  async getAvailableServices(countryId: string): Promise<Array<{ id: string; name: string; cost: number; count: number }>> {
+  async getAvailableServices(countryId: string = this.defaultCountry): Promise<Array<{ id: string; name: string; cost: number; count: number }>> {
     try {
       const params = new URLSearchParams({
         api_key: this.apiKey,
@@ -344,7 +346,7 @@ export class SMSActivateProvider /* implements VirtualNumberProvider */ {
         if (prices[countryId]) {
           return Object.entries(prices[countryId]).map(([id, service]: [string, any]) => ({
             id,
-            name: id,
+            name: this.getServiceName(id),
             cost: parseFloat(service.cost) || 0,
             count: parseInt(service.count) || 0
           }));
@@ -356,6 +358,156 @@ export class SMSActivateProvider /* implements VirtualNumberProvider */ {
       return [];
     } catch (error) {
       console.error(`[SMS-Activate] Error getting services for country ${countryId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get service name by ID
+   */
+  private getServiceName(serviceId: string): string {
+    const serviceNames: { [key: string]: string } = {
+      'wa': 'WhatsApp',
+      'tg': 'Telegram',
+      'vk': 'VKontakte',
+      'ok': 'Odnoklassniki',
+      'ig': 'Instagram',
+      'fb': 'Facebook',
+      'am': 'Amazon',
+      'go': 'Google',
+      'ub': 'Uber',
+      'ly': 'Lyft',
+      'ot': 'Other'
+    };
+    
+    return serviceNames[serviceId] || serviceId;
+  }
+
+  /**
+   * Get real-time pricing for a specific service in a country
+   */
+  async getServicePrice(serviceId: string, countryId: string = this.defaultCountry): Promise<{ cost: number; count: number } | null> {
+    try {
+      const services = await this.getAvailableServices(countryId);
+      const service = services.find(s => s.id === serviceId);
+      
+      if (service && service.count > 0) {
+        return {
+          cost: service.cost,
+          count: service.count
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`[SMS-Activate] Error getting service price for ${serviceId} in ${countryId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get all available services across all countries
+   */
+  async getAllServices(): Promise<Array<{ country: string; service: string; cost: number; count: number }>> {
+    try {
+      const countries = await this.getAvailableCountries();
+      const allServices: Array<{ country: string; service: string; cost: number; count: number }> = [];
+      
+      for (const country of countries) {
+        const services = await this.getAvailableServices(country.id);
+        for (const service of services) {
+          if (service.count > 0) {
+            allServices.push({
+              country: country.name,
+              service: service.name,
+              cost: service.cost,
+              count: service.count
+            });
+          }
+        }
+      }
+      
+      return allServices;
+    } catch (error) {
+      console.error('[SMS-Activate] Error getting all services:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get real-time price for a specific product from SMS-Activate
+   * This method is required to implement the VirtualNumberProvider interface
+   */
+  async getProductPrice(productId: string, countryId: string = this.defaultCountry): Promise<{ cost: number; count: number } | null> {
+    try {
+      console.log(`[SMS-Activate] Getting price for product: ${productId} in country: ${countryId}`);
+      
+      // Map common product names to SMS-Activate service IDs
+      const serviceMapping: { [key: string]: string } = {
+        'whatsapp': 'wa',
+        'wa': 'wa',
+        'telegram': 'tg',
+        'tg': 'tg',
+        'instagram': 'ig',
+        'ig': 'ig',
+        'facebook': 'fb',
+        'fb': 'fb',
+        'google': 'go',
+        'go': 'go',
+        'amazon': 'am',
+        'am': 'am',
+        'uber': 'ub',
+        'ub': 'ub',
+        'lyft': 'ly',
+        'ly': 'ly',
+        'vk': 'vk',
+        'ok': 'ok'
+      };
+      
+      const serviceId = serviceMapping[productId.toLowerCase()] || productId;
+      const priceData = await this.getServicePrice(serviceId, countryId);
+      
+      if (priceData) {
+        console.log(`[SMS-Activate] Found ${productId} in ${countryId}: $${priceData.cost} (${priceData.count} available)`);
+        return priceData;
+      } else {
+        console.log(`[SMS-Activate] No available numbers found for ${productId} in ${countryId}`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`[SMS-Activate] Error getting product price for ${productId} in ${countryId}:`, error);
+      return null;
+      }
+  }
+
+  /**
+   * Check OTPs for a number (alias for checkForOTP to match interface)
+   */
+  async checkOtps(number: string): Promise<OTP[]> {
+    return this.checkForOTP(number);
+  }
+
+  /**
+   * Resend OTP for a number (alias for resendOTP to match interface)
+   */
+  async resendOtp(number: string): Promise<boolean> {
+    return this.resendOTP(number);
+  }
+
+  /**
+   * Get available products for a country
+   */
+  async getAvailableProducts(countryId: string = this.defaultCountry): Promise<Array<{ id: string; name: string; cost: number; count: number }>> {
+    try {
+      const services = await this.getAvailableServices(countryId);
+      return services.map(service => ({
+        id: service.id,
+        name: service.name,
+        cost: service.cost,
+        count: service.count
+      }));
+    } catch (error) {
+      console.error(`[SMS-Activate] Error getting available products for country ${countryId}:`, error);
       return [];
     }
   }

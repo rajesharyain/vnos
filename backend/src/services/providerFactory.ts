@@ -106,9 +106,6 @@ export class ProviderFactory {
         break;
 
       case 'sms-activate':
-        // Temporarily disabled due to interface compatibility issues
-        throw new Error('SMS-Activate provider temporarily disabled. Please use 5SIM instead.');
-        /*
         try {
           if (process.env.SMS_ACTIVATE_API_KEY) {
             provider = new SMSActivateProvider();
@@ -120,7 +117,6 @@ export class ProviderFactory {
           console.error('[ProviderFactory] Failed to initialize SMS-Activate:', error);
           throw error; // Don't fall back automatically
         }
-        */
         break;
 
       case 'mock':

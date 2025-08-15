@@ -196,6 +196,234 @@ const options = {
           },
           required: ['id', 'name', 'cost', 'count']
         },
+        IndianService: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Service identifier (e.g., "amazon", "uber")'
+            },
+            name: {
+              type: 'string',
+              description: 'Service display name (e.g., "Amazon", "Uber")'
+            },
+            category: {
+              type: 'string',
+              description: 'Business category (e.g., "E-commerce & Shopping")'
+            },
+            smsActivateId: {
+              type: 'string',
+              description: 'SMS-Activate service ID for API calls'
+            },
+            description: {
+              type: 'string',
+              description: 'Brief description of the service'
+            },
+            expectedCount: {
+              type: 'number',
+              description: 'Expected available count based on historical data'
+            },
+            priority: {
+              type: 'string',
+              enum: ['high', 'medium', 'low'],
+              description: 'Service priority level'
+            },
+            realTimeData: {
+              $ref: '#/components/schemas/ServiceRealTimeData'
+            }
+          },
+          required: ['id', 'name', 'category', 'smsActivateId', 'description', 'expectedCount', 'priority']
+        },
+        ServiceRealTimeData: {
+          type: 'object',
+          properties: {
+            cost: {
+              type: 'number',
+              description: 'Cost in USD'
+            },
+            count: {
+              type: 'number',
+              description: 'Real-time available count'
+            },
+            usdCost: {
+              type: 'number',
+              description: 'Cost in USD'
+            },
+            inrCost: {
+              type: 'number',
+              description: 'Cost converted to Indian Rupees (INR)'
+            },
+            available: {
+              type: 'boolean',
+              description: 'Whether the service is currently available'
+            }
+          },
+          required: ['cost', 'count', 'usdCost', 'inrCost', 'available']
+        },
+        IndianService: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Service identifier (e.g., "amazon", "uber")'
+            },
+            name: {
+              type: 'string',
+              description: 'Service display name (e.g., "Amazon", "Uber")'
+            },
+            category: {
+              type: 'string',
+              description: 'Business category (e.g., "E-commerce & Shopping")'
+            },
+            smsActivateId: {
+              type: 'string',
+              description: 'SMS-Activate service ID for API calls'
+            },
+            description: {
+              type: 'string',
+              description: 'Brief description of the service'
+            },
+            expectedCount: {
+              type: 'number',
+              description: 'Expected available count based on historical data'
+            },
+            priority: {
+              type: 'string',
+              enum: ['high', 'medium', 'low'],
+              description: 'Service priority level'
+            },
+            realTimeData: {
+              $ref: '#/components/schemas/ServiceRealTimeData'
+            }
+          },
+          required: ['id', 'name', 'category', 'smsActivateId', 'description', 'expectedCount', 'priority']
+        },
+        ServiceRealTimeData: {
+          type: 'object',
+          properties: {
+            cost: {
+              type: 'number',
+              description: 'Cost in USD'
+            },
+            count: {
+              type: 'number',
+              description: 'Real-time available count'
+            },
+            usdCost: {
+              type: 'number',
+              description: 'Cost in USD'
+            },
+            inrCost: {
+              type: 'number',
+              description: 'Cost converted to Indian Rupees (INR)'
+            },
+            available: {
+              type: 'boolean',
+              description: 'Whether the service is currently available'
+            }
+          },
+          required: ['cost', 'count', 'usdCost', 'inrCost', 'available']
+        },
+        IndianServicesResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true
+            },
+            data: {
+              type: 'object',
+              properties: {
+                services: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/IndianService'
+                  },
+                  description: 'List of all Indian services with real-time data'
+                },
+                categorized: {
+                  type: 'object',
+                  description: 'Services grouped by category',
+                  additionalProperties: {
+                    type: 'array',
+                    items: {
+                      $ref: '#/components/schemas/IndianService'
+                    }
+                  }
+                },
+                summary: {
+                  type: 'object',
+                  properties: {
+                    total: {
+                      type: 'number',
+                      description: 'Total number of services'
+                    },
+                    available: {
+                      type: 'number',
+                      description: 'Number of currently available services'
+                    },
+                    unavailable: {
+                      type: 'number',
+                      description: 'Number of currently unavailable services'
+                    },
+                    categories: {
+                      type: 'number',
+                      description: 'Number of business categories'
+                    }
+                  },
+                  required: ['total', 'available', 'unavailable', 'categories']
+                }
+              },
+              required: ['services', 'categorized', 'summary']
+            }
+          },
+          required: ['success', 'data']
+        },
+        CategoryServicesResponse: {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              example: true
+            },
+            data: {
+              type: 'object',
+              properties: {
+                category: {
+                  type: 'string',
+                  description: 'Category name'
+                },
+                services: {
+                  type: 'array',
+                  items: {
+                    $ref: '#/components/schemas/IndianService'
+                  },
+                  description: 'Services in this category with real-time data'
+                },
+                summary: {
+                  type: 'object',
+                  properties: {
+                    total: {
+                      type: 'number',
+                      description: 'Total services in category'
+                    },
+                    available: {
+                      type: 'number',
+                      description: 'Available services in category'
+                    },
+                    unavailable: {
+                      type: 'number',
+                      description: 'Unavailable services in category'
+                    }
+                  },
+                  required: ['total', 'available', 'unavailable']
+                }
+              },
+              required: ['category', 'services', 'summary']
+            }
+          },
+          required: ['success', 'data']
+        },
         Error: {
           type: 'object',
           properties: {
@@ -241,6 +469,10 @@ const options = {
       {
         name: 'Virtual Numbers',
         description: 'Operations for managing virtual phone numbers'
+      },
+      {
+        name: 'Indian Services',
+        description: 'High-value Indian services with real-time availability and pricing'
       },
       {
         name: 'Providers',
