@@ -893,7 +893,7 @@ function App() {
                       onClick={() => handleOperatorSelect(operator.id)}
                     >
                       <h5 className="text-white font-medium text-xs mb-1 truncate">{operator.name}</h5>
-                      <p className="text-lg font-bold text-green-400">{convertToINR(operator.price)}</p>
+                      {/* <p className="text-lg font-bold text-green-400">{convertToINR(operator.price)}</p> */}
                     </div>
                   ))}
                 </div>
