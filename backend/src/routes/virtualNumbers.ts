@@ -5,7 +5,7 @@ import { CreateVirtualNumberResponse, GetOTPsResponse, CancelNumberResponse, Res
 const router = Router();
 const virtualNumberService = new VirtualNumberService();
 
-// Get available countries for SMS-Activate
+// SMS-Activate specific routes - must be defined BEFORE the :number route to avoid conflicts
 router.get('/countries', async (req, res) => {
   try {
     const virtualNumberService = new VirtualNumberService();
@@ -33,11 +33,9 @@ router.get('/countries', async (req, res) => {
   }
 });
 
-// Get available services for a country
 router.get('/services/:country', async (req, res) => {
   try {
     const { country } = req.params;
-    const virtualNumberService = new VirtualNumberService();
     const provider = virtualNumberService.getProviderById('sms-activate');
     
     if (provider && 'getAvailableServices' in provider) {
@@ -61,10 +59,8 @@ router.get('/services/:country', async (req, res) => {
   }
 });
 
-// Get account balance
 router.get('/balance', async (req, res) => {
   try {
-    const virtualNumberService = new VirtualNumberService();
     const provider = virtualNumberService.getProviderById('sms-activate');
     
     if (provider && 'getBalance' in provider) {
@@ -221,13 +217,11 @@ router.get('/balance', async (req, res) => {
  *                   type: string
  *                   example: "Failed to get Indian services"
  */
-// Get Indian services with real-time availability
 router.get('/indian-services', async (req, res) => {
   try {
     const { INDIAN_SERVICES, getServicesByCategory } = await import('../config/indianServices');
     
     // Get SMS-Activate provider
-    const virtualNumberService = new VirtualNumberService();
     const provider = virtualNumberService.getProviderById('sms-activate');
     
     if (!provider || !('getServicePrice' in provider)) {
@@ -284,7 +278,7 @@ router.get('/indian-services', async (req, res) => {
     }
 
     // Group by category
-    const categorizedServices = {};
+    const categorizedServices: any = {};
     for (const service of servicesWithData) {
       if (!categorizedServices[service.category]) {
         categorizedServices[service.category] = [];
@@ -464,7 +458,6 @@ router.get('/indian-services', async (req, res) => {
  *                   type: string
  *                   example: "Failed to get Indian services"
  */
-// Get Indian services by category
 router.get('/indian-services/:category', async (req, res) => {
   try {
     const { category } = req.params;
@@ -479,97 +472,6 @@ router.get('/indian-services/:category', async (req, res) => {
     }
 
     // Get SMS-Activate provider
-    const virtualNumberService = new VirtualNumberService();
-    const provider = virtualNumberService.getProviderById('sms-activate');
-    
-    if (!provider || !('getServicePrice' in provider)) {
-      return res.status(400).json({
-        success: false,
-        message: 'SMS-Activate provider not available'
-      });
-    }
-
-    const servicesWithData = [];
-    const countryId = '22'; // India
-
-    // Fetch real-time data for services in this category
-    for (const service of services) {
-      try {
-        const priceData = await (provider as any).getServicePrice(service.smsActivateId, countryId);
-        
-        if (priceData) {
-          servicesWithData.push({
-            ...service,
-            realTimeData: {
-              cost: priceData.cost,
-              count: priceData.count,
-              usdCost: priceData.cost,
-              inrCost: Math.round(priceData.cost * 83),
-              available: priceData.count > 0
-            }
-          });
-        } else {
-          servicesWithData.push({
-            ...service,
-            realTimeData: {
-              cost: 0,
-              count: 0,
-              usdCost: 0,
-              inrCost: 0,
-              available: false
-            }
-          });
-        }
-      } catch (error) {
-        console.warn(`[API] Failed to get data for ${service.name}:`, error);
-        servicesWithData.push({
-          ...service,
-          realTimeData: {
-            cost: 0,
-            count: 0,
-            usdCost: 0,
-            inrCost: 0,
-            available: false
-          }
-        });
-      }
-    }
-
-    res.json({
-      success: true,
-      data: {
-        category,
-        services: servicesWithData,
-        summary: {
-          total: servicesWithData.length,
-          available: servicesWithData.filter(s => s.realTimeData.available).length,
-          unavailable: servicesWithData.filter(s => !s.realTimeData.available).length
-        }
-      }
-    });
-  } catch (error) {
-    console.error(`[API] Error getting Indian services for category ${req.params.category}:`, error);
-    res.status(500).json({
-      success: false,
-      message: error instanceof Error ? error.message : 'Failed to get Indian services'
-    });
-  }
-});
-router.get('/indian-services/:category', async (req, res) => {
-  try {
-    const { category } = req.params;
-    const { getServicesByCategory } = await import('../config/indianServices');
-    
-    const services = getServicesByCategory(category);
-    if (services.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: `Category '${category}' not found`
-      });
-    }
-
-    // Get SMS-Activate provider
-    const virtualNumberService = new VirtualNumberService();
     const provider = virtualNumberService.getProviderById('sms-activate');
     
     if (!provider || !('getServicePrice' in provider)) {
@@ -654,18 +556,16 @@ router.get('/indian-services/:category', async (req, res) => {
  *     description: |
  *       Request a virtual number for a specific product, country, and operator from the selected provider.
  *       
- *       **🔐 Authentication**: No client-side API key required! The backend automatically uses the 5SIM API key 
- *       configured in your environment variables (`FIVESIM_API_KEY`).
+ *       **🔐 Authentication**: No client-side API key required! The backend automatically uses the provider API key 
+ *       configured in your environment variables.
  *       
  *       **📱 How it works**:
  *       1. Client sends request with product, country, and operator
- *       2. Backend automatically adds 5SIM Bearer token from `FIVESIM_API_KEY`
- *       3. Backend calls 5SIM API to purchase the number with specific operator
+ *       2. Backend automatically adds provider Bearer token from environment variables
+ *       3. Backend calls provider API to purchase the number with specific operator
  *       4. Client receives the virtual number details
  *       
- *       **⚠️ Prerequisites**: Make sure `FIVESIM_API_KEY` is set in your backend `.env` file
- *       
- *       **🔗 5SIM API Endpoint**: `GET /user/buy/activation/{country}/{operator}/{product}`
+ *       **⚠️ Prerequisites**: Make sure provider API keys are set in your backend `.env` file
  *     tags: [Virtual Numbers]
  *     requestBody:
  *       required: true
@@ -678,8 +578,8 @@ router.get('/indian-services/:category', async (req, res) => {
  *             properties:
  *               product:
  *                 type: string
- *                 description: Product ID (e.g., jiomart, zomato, swiggy)
- *                 example: "jiomart"
+ *                 description: Product ID (e.g., amazon, zomato, swiggy)
+ *                 example: "amazon"
  *               country:
  *                 type: string
  *                 description: Country code (defaults to india)
@@ -727,9 +627,9 @@ router.post('/', async (req: Request, res: Response) => {
 
     console.log(`[API] Requesting virtual number with product: ${product}, country: ${country}, operator: ${operator || 'any'}`);
     
-    // Explicitly select 5SIM provider before requesting number
-    await virtualNumberService.selectProvider('5sim');
-    console.log(`[API] Selected 5SIM provider for virtual number request`);
+    // Get the currently selected provider
+    const selectedProvider = await virtualNumberService.getSelectedProvider();
+    console.log(`[API] Using selected provider: ${selectedProvider}`);
     
     const virtualNumber = await virtualNumberService.requestNumber(product, country, operator);
     
@@ -741,7 +641,8 @@ router.post('/', async (req: Request, res: Response) => {
     console.error('[API] Error requesting virtual number:', error);
     
     res.status(500).json({
-      success: error instanceof Error ? error.message : 'Failed to request virtual number'
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to request virtual number'
     });
   }
 });
@@ -767,7 +668,7 @@ router.get('/providers', async (req: Request, res: Response) => {
         id: 'sms-activate',
         name: 'SMS-Activate',
         cost: '$0.20-0.80 per number',
-        features: ['Real SMS', 'Multiple countries', 'Affordable', 'Good uptime']
+        features: ['Real SMS', 'Multiple countries', 'Affordable', 'Good uptime', 'Indian services']
       },
       {
         id: 'mock',
@@ -1371,225 +1272,49 @@ router.delete('/:number', async (req: Request, res: Response) => {
   }
 });
 
-  // Get real-time product price from 5SIM
-  router.get('/price/:product/:country', async (req, res) => {
-    try {
-      const { product, country } = req.params;
-      console.log(`[API] Getting price for product: ${product} in country: ${country}`);
-      
-      const virtualNumberService = new VirtualNumberService();
-      const provider = await virtualNumberService.getProvider();
-      
-      if (provider && 'getProductPrice' in provider) {
-        const priceData = await (provider as any).getProductPrice(product, country);
-        
-        if (priceData) {
-          // Convert USD to INR (1 USD ≈ 83 INR)
-          const inrCost = Math.round(priceData.cost * 83);
-          
-          res.json({
-            success: true,
-            data: {
-              product,
-              country,
-              usdCost: priceData.cost,
-              inrCost: inrCost,
-              count: priceData.count,
-              currency: 'INR'
-            }
-          });
-        } else {
-          res.status(404).json({
-            success: false,
-            message: `Price not available for product: ${product} in country: ${country}`
-          });
-        }
-      } else {
-        res.status(400).json({
-          success: false,
-          message: 'Provider does not support price fetching'
-        });
-      }
-    } catch (error) {
-      console.error('[API] Error getting product price:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to get product price'
-      });
-    }
-  });
-
-  // Get available countries for SMS-Activate
-  router.get('/countries', async (req, res) => {
-    try {
-      const virtualNumberService = new VirtualNumberService();
-      const provider = await virtualNumberService.getProvider();
-      
-      if (provider && 'getAvailableCountries' in provider) {
-        const countries = await (provider as any).getAvailableCountries();
-        res.json({
-          success: true,
-          data: countries
-        });
-      } else {
-        res.status(400).json({
-          success: false,
-          message: 'Provider does not support country listing'
-        });
-      }
-    } catch (error) {
-      console.error('[API] Error getting countries:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to get countries'
-      });
-    }
-  });
-
-  // Get available services for a country
-  router.get('/services/:country', async (req, res) => {
-    try {
-      const { country } = req.params;
-      const virtualNumberService = new VirtualNumberService();
-      const provider = await virtualNumberService.getProvider();
-      
-      if (provider && 'getAvailableServices' in provider) {
-        const services = await (provider as any).getAvailableServices(country);
-        res.json({
-          success: true,
-          data: services
-        });
-      } else {
-        res.status(400).json({
-          success: false,
-          message: 'Provider does not support service listing'
-        });
-      }
-    } catch (error) {
-      console.error('[API] Error getting services:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to get services'
-      });
-    }
-  });
-
-  // Get account balance
-  router.get('/balance', async (req, res) => {
-    try {
-      const virtualNumberService = new VirtualNumberService();
-      const provider = await virtualNumberService.getProvider();
-      
-      if (provider && 'getBalance' in provider) {
-        const balance = await (provider as any).getBalance();
-        res.json({
-          success: true,
-          data: balance
-        });
-      } else {
-        res.status(400).json({
-          success: false,
-          message: 'Provider does not support balance checking'
-        });
-      }
-    } catch (error) {
-      console.error('[API] Error getting balance:', error);
-      res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : 'Failed to get balance'
-      });
-    }
-  });
-
-// Get Indian services with real-time availability
-router.get('/indian-services', async (req, res) => {
+// Get real-time product price from provider
+router.get('/price/:product/:country', async (req, res) => {
   try {
-    const { INDIAN_SERVICES, getServicesByCategory } = await import('../config/indianServices');
+    const { product, country } = req.params;
+    console.log(`[API] Getting price for product: ${product} in country: ${country}`);
     
-    // Get SMS-Activate provider
-    const virtualNumberService = new VirtualNumberService();
-    const provider = virtualNumberService.getProviderById('sms-activate');
+    const provider = await virtualNumberService.getProviderById(await virtualNumberService.getSelectedProvider() || '5sim');
     
-    if (!provider || !('getServicePrice' in provider)) {
-      return res.status(400).json({
-        success: false,
-        message: 'SMS-Activate provider not available'
-      });
-    }
-
-    const servicesWithData = [];
-    const countryId = '22'; // India
-
-    // Fetch real-time data for each service
-    for (const service of INDIAN_SERVICES) {
-      try {
-        const priceData = await (provider as any).getServicePrice(service.smsActivateId, countryId);
+    if (provider && 'getProductPrice' in provider) {
+      const priceData = await (provider as any).getProductPrice(product, country);
+      
+      if (priceData) {
+        // Convert USD to INR (1 USD ≈ 83 INR)
+        const inrCost = Math.round(priceData.cost * 83);
         
-        if (priceData) {
-          servicesWithData.push({
-            ...service,
-            realTimeData: {
-              cost: priceData.cost,
-              count: priceData.count,
-              usdCost: priceData.cost,
-              inrCost: Math.round(priceData.cost * 83), // Convert to INR
-              available: priceData.count > 0
-            }
-          });
-        } else {
-          servicesWithData.push({
-            ...service,
-            realTimeData: {
-              cost: 0,
-              count: 0,
-              usdCost: 0,
-              inrCost: 0,
-              available: false
-            }
-          });
-        }
-      } catch (error) {
-        console.warn(`[API] Failed to get data for ${service.name}:`, error);
-        servicesWithData.push({
-          ...service,
-          realTimeData: {
-            cost: 0,
-            count: 0,
-            usdCost: 0,
-            inrCost: 0,
-            available: false
+        res.json({
+          success: true,
+          data: {
+            product,
+            country,
+            usdCost: priceData.cost,
+            inrCost: inrCost,
+            count: priceData.count,
+            currency: 'INR'
           }
         });
+      } else {
+        res.status(404).json({
+          success: false,
+          message: `Price not available for product: ${product} in country: ${country}`
+        });
       }
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Provider does not support price fetching'
+      });
     }
-
-    // Group by category
-    const categorizedServices = {};
-    for (const service of servicesWithData) {
-      if (!categorizedServices[service.category]) {
-        categorizedServices[service.category] = [];
-      }
-      categorizedServices[service.category].push(service);
-    }
-
-    res.json({
-      success: true,
-      data: {
-        services: servicesWithData,
-        categorized: categorizedServices,
-        summary: {
-          total: servicesWithData.length,
-          available: servicesWithData.filter(s => s.realTimeData.available).length,
-          unavailable: servicesWithData.filter(s => !s.realTimeData.available).length,
-          categories: Object.keys(categorizedServices).length
-        }
-      }
-    });
   } catch (error) {
-    console.error('[API] Error getting Indian services:', error);
+    console.error('[API] Error getting product price:', error);
     res.status(500).json({
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to get Indian services'
+      message: error instanceof Error ? error.message : 'Failed to get product price'
     });
   }
 });

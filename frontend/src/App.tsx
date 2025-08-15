@@ -7,52 +7,203 @@ import { ProviderSelector } from './components/ProviderSelector';
 import { Phone, Plus, Wifi, WifiOff, AlertCircle, CheckCircle, Copy, Clock, MessageCircle } from 'lucide-react';
 import productsData from './data/products.json';
 
+// Interface for real Indian services from SMS-Activate API
+interface IndianService {
+  id: string;
+  name: string;
+  category: string;
+  smsActivateId: string;
+  description: string;
+  expectedCount: number;
+  priority: string;
+  realTimeData: {
+    cost: number;
+    count: number;
+    usdCost: number;
+    inrCost: number;
+    available: boolean;
+  };
+}
+
 function App() {
   const [virtualNumbers, setVirtualNumbers] = useState<VirtualNumber[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [selectedProvider, setSelectedProvider] = useState<string>('5sim'); // Default to 5SIM for testing
+  const [selectedProvider, setSelectedProvider] = useState<string>('sms-activate'); // Default to SMS-Activate
   const [providerError, setProviderError] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<string | null>('uber'); // Changed from facebook to uber since it's available for USA
-  const [selectedCountry, setSelectedCountry] = useState<string>('usa'); // Reverted back to 'usa' as per user feedback
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<string>('india'); // Default to India
   const [apiProducts, setApiProducts] = useState<Array<{ id: string; name: string; cost: number; count: number }>>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false); // Changed to false since we use hardcoded products
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true); // Start with loading true
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedOperator, setSelectedOperator] = useState<string | null>('any'); // Default to 'any' operator
+  const [selectedOperator, setSelectedOperator] = useState<string | null>('any');
   const [pollingIntervals, setPollingIntervals] = useState<Map<string, NodeJS.Timeout>>(new Map());
   const [productPrices, setProductPrices] = useState<Map<string, { usdCost: number; inrCost: number; count: number }>>(new Map());
+  
+  // New state for real Indian services
+  const [realIndianServices, setRealIndianServices] = useState<IndianService[]>([]);
+  const [isLoadingIndianServices, setIsLoadingIndianServices] = useState(true);
+  const [indianServicesError, setIndianServicesError] = useState<string | null>(null);
 
-  // Get operators for a specific product (simplified for testing)
-  const getProductOperators = (productId: string) => {
-    // For USA testing, return common operators
-    if (productId === 'facebook' || productId === 'google') {
+  // Background worker to fetch Indian services
+  useEffect(() => {
+    const fetchIndianServices = async () => {
+      try {
+        setIsLoadingIndianServices(true);
+        setIndianServicesError(null);
+        
+        console.log('[Worker] Fetching Indian services from SMS-Activate API...');
+        const response = await fetch('http://localhost:5000/api/virtual-numbers/indian-services');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch Indian services: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.services) {
+          console.log(`[Worker] Successfully fetched ${data.data.services.length} Indian services`);
+          setRealIndianServices(data.data.services);
+          
+          // Update products state with real data
+          const realProducts = data.data.services.map((service: IndianService) => ({
+            id: service.id,
+            name: service.name,
+            description: service.description,
+            icon: getServiceIcon(service.name),
+            realTimeData: service.realTimeData
+          }));
+          
+          setApiProducts(realProducts.map((product: any) => ({
+            id: product.id,
+            name: product.name,
+            cost: product.realTimeData?.inrCost || 0,
+            count: product.realTimeData?.count || 0
+          })));
+          
+          // Set first available product as selected
+          if (realProducts.length > 0) {
+            setSelectedProduct(realProducts[0].id);
+            const firstProductOperators = getProductOperators(realProducts[0].id, 'sms-activate', 'india');
+            setOperators(firstProductOperators);
+          }
+          
+          // Update product prices
+          const newPrices = new Map<string, { usdCost: number; inrCost: number; count: number }>();
+          realProducts.forEach((product: any) => {
+            if (product.realTimeData) {
+              newPrices.set(product.id, {
+                usdCost: product.realTimeData.usdCost,
+                inrCost: product.realTimeData.inrCost,
+                count: product.realTimeData.count
+              });
+            }
+          });
+          setProductPrices(newPrices);
+          
+        } else {
+          throw new Error('Invalid response format from Indian services API');
+        }
+      } catch (error) {
+        console.error('[Worker] Error fetching Indian services:', error);
+        setIndianServicesError(error instanceof Error ? error.message : 'Failed to fetch Indian services');
+        
+        // Fallback to hardcoded products if API fails
+        const fallbackProducts = getProductsForCountry('india', 'sms-activate');
+        setApiProducts(fallbackProducts.map(product => ({
+          id: product.id,
+          name: product.name,
+          cost: 5,
+          count: 1
+        })));
+        
+        if (fallbackProducts.length > 0) {
+          setSelectedProduct(fallbackProducts[0].id);
+          const fallbackOperators = getProductOperators(fallbackProducts[0].id, 'sms-activate', 'india');
+          setOperators(fallbackOperators);
+        }
+      } finally {
+        setIsLoadingIndianServices(false);
+        setIsLoadingProducts(false);
+      }
+    };
+
+    // Fetch immediately and then every 5 minutes
+    fetchIndianServices();
+    const interval = setInterval(fetchIndianServices, 5 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper function to get service icons
+  const getServiceIcon = (serviceName: string): string => {
+    const iconMap: { [key: string]: string } = {
+      'Amazon': '📦',
+      'Flipkart': '🛒',
+      'Paytm': '💳',
+      'PhonePe': '📱',
+      'Swiggy': '🍔',
+      'Zomato': '🍕',
+      'Uber': '🚗',
+      'Ola': '🚙',
+      'Disney+ Hotstar': '🎬',
+      'Netflix': '📺',
+      'Dream11': '🎮',
+      '1mg': '💊'
+    };
+    
+    return iconMap[serviceName] || '📱';
+  };
+
+  // Get operators for a specific product and provider
+  const getProductOperators = (productId: string, provider: string, country: string) => {
+    if (provider === 'sms-activate') {
+      // SMS-Activate provider - operators are handled by the service
       return [
-        { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '$1.50', selected: false },
-        { id: 'verizon', name: 'Verizon', description: 'Verizon Wireless', price: '$2.00', selected: false },
-        { id: 'att', name: 'AT&T', description: 'AT&T Mobility', price: '$1.80', selected: false },
-        { id: 'tmobile', name: 'T-Mobile', description: 'T-Mobile US', price: '$1.60', selected: false },
-        { id: 'sprint', name: 'Sprint', description: 'Sprint Corporation', price: '$1.40', selected: false }
+        { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '₹5-15', selected: false },
+        { id: 'airtel', name: 'Airtel', description: 'Bharti Airtel', price: '₹8-20', selected: false },
+        { id: 'jio', name: 'Jio', description: 'Reliance Jio', price: '₹5-15', selected: false },
+        { id: 'vodafone', name: 'Vodafone', description: 'Vodafone Idea', price: '₹6-18', selected: false },
+        { id: 'bsnl', name: 'BSNL', description: 'Bharat Sanchar Nigam', price: '₹3-10', selected: false }
+      ];
+    } else if (country === 'usa') {
+      // 5SIM provider for USA
+      if (productId === 'facebook' || productId === 'google') {
+        return [
+          { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '$1.50', selected: false },
+          { id: 'verizon', name: 'Verizon', description: 'Verizon Wireless', price: '$2.00', selected: false },
+          { id: 'att', name: 'AT&T', description: 'AT&T Mobility', price: '$1.80', selected: false },
+          { id: 'tmobile', name: 'T-Mobile', description: 'T-Mobile US', price: '$1.60', selected: false },
+          { id: 'sprint', name: 'Sprint', description: 'Sprint Corporation', price: '$1.40', selected: false }
+        ];
+      } else {
+        return [
+          { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '$1.00', selected: false },
+          { id: 'verizon', name: 'Verizon', description: 'Verizon Wireless', price: '$1.50', selected: false },
+          { id: 'att', name: 'AT&T', description: 'AT&T Mobility', price: '$1.30', selected: false },
+          { id: 'tmobile', name: 'T-Mobile', description: 'T-Mobile US', price: '$1.10', selected: false }
+        ];
+      }
+    } else {
+      // 5SIM provider for India
+      return [
+        { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '₹2', selected: false },
+        { id: 'airtel', name: 'Airtel', description: 'Bharti Airtel', price: '₹3', selected: false },
+        { id: 'jio', name: 'Jio', description: 'Reliance Jio', price: '₹2', selected: false },
+        { id: 'vodafone', name: 'Vodafone', description: 'Vodafone Idea', price: '₹2', selected: false },
+        { id: 'bsnl', name: 'BSNL', description: 'Bharat Sanchar Nigam', price: '₹1', selected: false }
       ];
     }
-    
-    // For Indian products, return Indian operators
-    return [
-      { id: 'any', name: 'Any Operator', description: 'Any available operator', price: '₹2', selected: false },
-      { id: 'airtel', name: 'Airtel', description: 'Bharti Airtel', price: '₹3', selected: false },
-      { id: 'jio', name: 'Jio', description: 'Reliance Jio', price: '₹2', selected: false },
-      { id: 'vodafone', name: 'Vodafone', description: 'Vodafone Idea', price: '₹2', selected: false },
-      { id: 'bsnl', name: 'BSNL', description: 'Bharat Sanchar Nigam', price: '₹1', selected: false }
-    ];
   };
 
   // Handle country change
   const handleCountryChange = (country: string) => {
     setSelectedCountry(country);
-    setSelectedOperator('any'); // Reset operator to 'any' when country changes
+    setSelectedOperator('any');
     
     // Update operators based on new country
     if (selectedProduct) {
-      const newOperators = getProductOperators(selectedProduct);
+      const newOperators = getProductOperators(selectedProduct, selectedProvider, country);
       setOperators(newOperators);
     }
     
@@ -61,26 +212,49 @@ function App() {
 
   // Convert USD to INR (approximate rate: 1 USD = 83 INR)
   const convertToINR = (usdPrice: string): string => {
-    // Extract the numeric value from price strings like "$0.70" or "₹6"
     const numericValue = parseFloat(usdPrice.replace(/[^\d.]/g, ''));
     
     if (usdPrice.includes('$')) {
-      // Convert USD to INR (1 USD ≈ 83 INR)
       const inrValue = Math.round(numericValue * 83);
       return `₹${inrValue}`;
     } else if (usdPrice.includes('₹')) {
-      // Already in INR, return as is
       return usdPrice;
     } else {
-      // Default case, assume USD
       const inrValue = Math.round(numericValue * 83);
       return `₹${inrValue}`;
     }
   };
 
-  // Get products based on selected country with real-time pricing
-  const getProductsForCountry = (country: string) => {
-    if (country === 'usa') {
+  // Get products based on selected country and provider
+  const getProductsForCountry = (country: string, provider: string) => {
+    if (provider === 'sms-activate') {
+      // SMS-Activate provider - use Indian services
+      if (country === 'india') {
+        return [
+          { id: 'amazon', name: 'Amazon', description: 'E-commerce OTP', icon: '📦' },
+          { id: 'flipkart', name: 'Flipkart', description: 'E-commerce OTP', icon: '🛒' },
+          { id: 'paytm', name: 'Paytm', description: 'Digital payments OTP', icon: '💳' },
+          { id: 'phonepe', name: 'PhonePe', description: 'Digital payments OTP', icon: '📱' },
+          { id: 'swiggy', name: 'Swiggy', description: 'Food delivery OTP', icon: '🍔' },
+          { id: 'zomato', name: 'Zomato', description: 'Food delivery OTP', icon: '🍕' },
+          { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
+          { id: 'ola', name: 'Ola', description: 'Ride-hailing OTP', icon: '🚙' },
+          { id: 'disneyhotstar', name: 'Disney+ Hotstar', description: 'Streaming OTP', icon: '🎬' },
+          { id: 'netflix', name: 'Netflix', description: 'Streaming OTP', icon: '📺' },
+          { id: 'dream11', name: 'Dream11', description: 'Gaming OTP', icon: '🎮' },
+          { id: '1mg', name: '1mg', description: 'Pharmacy OTP', icon: '💊' }
+        ];
+      } else {
+        // For other countries with SMS-Activate, show generic services
+        return [
+          { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
+          { id: 'facebook', name: 'Facebook', description: 'Social media OTP', icon: '📘' },
+          { id: 'google', name: 'Google', description: 'Google services OTP', icon: '🔍' },
+          { id: 'whatsapp', name: 'WhatsApp', description: 'Messaging OTP', icon: '💬' }
+        ];
+      }
+    } else if (country === 'usa') {
+      // 5SIM provider for USA
       return [
         { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
         { id: 'facebook', name: 'Facebook', description: 'Social media platform OTP', icon: '📘' },
@@ -89,7 +263,7 @@ function App() {
         { id: 'whatsapp', name: 'WhatsApp', description: 'Messaging OTP', icon: '💬' }
       ];
     } else {
-      // India products - based on actual 5SIM availability
+      // 5SIM provider for India
       return [
         { id: 'zomato', name: 'Zomato', description: 'Food delivery OTP', icon: '🍕' },
         { id: 'uber', name: 'Uber', description: 'Ride-hailing OTP', icon: '🚗' },
@@ -98,13 +272,30 @@ function App() {
         { id: 'phonepe', name: 'PhonePe', description: 'Digital payments OTP', icon: '📱' },
         { id: 'amazon', name: 'Amazon', description: 'E-commerce OTP', icon: '📦' },
         { id: 'flipkart', name: 'Flipkart', description: 'E-commerce OTP', icon: '🛒' },
-        { id: 'swiggy', name: 'Swiggy', description: 'Food delivery OTP', icon: '🛵' }
+        { id: 'swiggy', name: 'Swiggy', description: 'Food delivery OTP', icon: '🍔' },
+        { id: 'meesho', name: 'Meesho', description: 'Social commerce OTP', icon: '🛍️' },
+        { id: 'snapdeal', name: 'Snapdeal', description: 'E-commerce OTP', icon: '📱' }
       ];
     }
   };
 
-  // Get current products for selected country
-  const productsData = getProductsForCountry(selectedCountry);
+  // Get current products - prioritize real Indian services if available
+  const getCurrentProducts = () => {
+    if (selectedProvider === 'sms-activate' && selectedCountry === 'india' && realIndianServices.length > 0) {
+      // Return real Indian services with icons
+      return realIndianServices.map(service => ({
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        icon: getServiceIcon(service.name)
+      }));
+    } else {
+      // Fallback to hardcoded products
+      return getProductsForCountry(selectedCountry, selectedProvider);
+    }
+  };
+
+  const productsData = getCurrentProducts();
 
   // Filter products based on search query
   const filteredProducts = productsData.filter(product =>
@@ -112,49 +303,29 @@ function App() {
     product.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const [operators, setOperators] = useState(() => getProductOperators('uber')); // Default to uber operators since it's available
+  const [operators, setOperators] = useState(() => getProductOperators('amazon', 'sms-activate', 'india'));
 
-  // Fetch real-time prices for products
-  const fetchProductPrices = async (products: Array<{ id: string; name: string; description: string; icon: string }>) => {
-    const newPrices = new Map<string, { usdCost: number; inrCost: number; count: number }>();
-    
-    for (const product of products) {
-      try {
-        const priceData = await ApiService.getProductPrice(product.id, selectedCountry);
-        newPrices.set(product.id, priceData);
-      } catch (error) {
-        console.log(`Failed to get price for ${product.id}:`, error);
-        // Set default price if API fails
-        newPrices.set(product.id, { usdCost: 5, inrCost: 415, count: 1 });
-      }
-    }
-    
-    setProductPrices(newPrices);
-  };
-
-  // Update products and operators when country changes
+  // Update products and operators when country or provider changes
   useEffect(() => {
-    const newProducts = getProductsForCountry(selectedCountry);
-    setApiProducts(newProducts.map(product => ({
-      id: product.id,
-      name: product.name,
-      cost: 5, // Default cost, will be updated with real prices
-      count: 1
-    })));
-    
-    // Fetch real-time prices for new products
-    fetchProductPrices(newProducts);
+    const newProducts = getCurrentProducts();
     
     // Update operators based on first product
     if (newProducts.length > 0) {
-      const newOperators = getProductOperators(newProducts[0].id);
+      const newOperators = getProductOperators(newProducts[0].id, selectedProvider, selectedCountry);
       setOperators(newOperators);
-      setSelectedProduct(newProducts[0].id);
+      if (!selectedProduct) {
+        setSelectedProduct(newProducts[0].id);
+      }
     }
-    
-    // Set loading to false since products are now loaded
-    setIsLoadingProducts(false);
-  }, [selectedCountry]);
+  }, [selectedCountry, selectedProvider, realIndianServices]);
+
+  // Auto-set India when SMS-Activate is selected
+  useEffect(() => {
+    if (selectedProvider === 'sms-activate' && selectedCountry !== 'india') {
+      setSelectedCountry('india');
+      console.log('Auto-switched to India for SMS-Activate provider');
+    }
+  }, [selectedProvider]);
 
   const handleOperatorSelect = (operatorId: string) => {
     setSelectedOperator(operatorId);
@@ -166,9 +337,10 @@ function App() {
     console.log('State updated:', {
       selectedProduct,
       operators: operators.map(op => ({ id: op.id, price: op.price })),
-      selectedOperator
+      selectedOperator,
+      realIndianServicesCount: realIndianServices.length
     });
-  }, [selectedProduct, operators, selectedOperator]);
+  }, [selectedProduct, operators, selectedOperator, realIndianServices]);
 
   // Initialize WebSocket connection
   useEffect(() => {
@@ -202,14 +374,14 @@ function App() {
         setSelectedProvider(selectedProviderData);
         console.log(`Loaded selected provider: ${selectedProviderData}`);
       } else {
-        // If no provider is selected, default to 5SIM for India
-        console.log('No provider selected, defaulting to 5SIM');
-        setSelectedProvider('5sim');
+        // Default to SMS-Activate for India
+        console.log('No provider selected, defaulting to SMS-Activate');
+        setSelectedProvider('sms-activate');
       }
     } catch (error) {
       console.error('Failed to load selected provider:', error);
-      // Default to 5SIM for India on error
-      setSelectedProvider('5sim');
+      // Default to SMS-Activate for India on error
+      setSelectedProvider('sms-activate');
     }
   };
 
@@ -325,7 +497,7 @@ function App() {
     // Reset operator selection when product changes
     setSelectedOperator(null);
     // Update operators based on selected product
-    const productOperators = getProductOperators(productId);
+    const productOperators = getProductOperators(productId, selectedProvider, selectedCountry);
     console.log('New operators for product:', productId, productOperators);
     // Force a new array reference to ensure React detects the change
     setOperators([...productOperators]);
@@ -371,11 +543,30 @@ function App() {
               📱 Products for {selectedCountry === 'usa' ? '🇺🇸 USA' : '🇮🇳 India'}
             </h2>
             <p className="text-sm text-gray-400 mb-4">
-              {selectedCountry === 'usa' 
-                ? 'Select a product to get a USA virtual number for OTP testing'
-                : 'Select a product to get an Indian virtual number for OTP testing'
+              {selectedProvider === 'sms-activate' && selectedCountry === 'india' 
+                ? 'Real-time Indian services from SMS-Activate'
+                : selectedCountry === 'usa' 
+                  ? 'Select a product to get a USA virtual number for OTP testing'
+                  : 'Select a product to get an Indian virtual number for OTP testing'
               }
             </p>
+
+            {/* Background Worker Status */}
+            {selectedProvider === 'sms-activate' && selectedCountry === 'india' && (
+              <div className="mb-4 p-3 bg-blue-900/20 border border-blue-700 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <div className={`w-2 h-2 rounded-full ${isLoadingIndianServices ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`}></div>
+                  <span className="text-sm text-blue-300">
+                    {isLoadingIndianServices ? 'Fetching real services...' : 'Live Indian services loaded'}
+                  </span>
+                </div>
+                {indianServicesError && (
+                  <p className="text-xs text-red-400 mt-1">
+                    Error: {indianServicesError}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Search Input */}
             <div className="mb-4">
@@ -421,52 +612,61 @@ function App() {
                   <p className="text-gray-400 text-sm">Loading products...</p>
                 </div>
               ) : filteredProducts.length > 0 ? (
-                filteredProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className={`bg-gray-700 rounded-lg p-3 cursor-pointer transition-all hover:bg-gray-600 ${
-                      selectedProduct === product.id ? 'ring-2 ring-purple-500 bg-purple-900/20 border border-purple-500' : ''
-                    }`}
-                    onClick={() => handleProductSelect(product.id)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-2xl">📱</span>
-                        <div>
-                          <h3 className={`font-medium ${selectedProduct === product.id ? 'text-purple-200' : 'text-white'}`}>
-                            {product.name}
-                          </h3>
-                          <p className={`text-sm ${selectedProduct === product.id ? 'text-purple-300' : 'text-gray-400'}`}>
-                            Virtual Number Service
-                          </p>
+                filteredProducts.map((product) => {
+                  // Get real-time data for this product
+                  const realService = realIndianServices.find(s => s.id === product.id);
+                  const priceData = productPrices.get(product.id);
+                  
+                  return (
+                    <div
+                      key={product.id}
+                      className={`bg-gray-700 rounded-lg p-3 cursor-pointer transition-all hover:bg-gray-600 ${
+                        selectedProduct === product.id ? 'ring-2 ring-purple-500 bg-purple-900/20 border border-purple-500' : ''
+                      }`}
+                      onClick={() => handleProductSelect(product.id)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-2xl">{product.icon}</span>
+                          <div>
+                            <h3 className={`font-medium ${selectedProduct === product.id ? 'text-purple-200' : 'text-white'}`}>
+                              {product.name}
+                            </h3>
+                            <p className={`text-sm ${selectedProduct === product.id ? 'text-purple-300' : 'text-gray-400'}`}>
+                              {product.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className={`text-lg font-bold ${selectedProduct === product.id ? 'text-purple-300' : 'text-green-400'}`}>
+                            {realService && realService.realTimeData ? 
+                              `₹${realService.realTimeData.inrCost}` : 
+                              priceData ? `₹${priceData.inrCost}` : '₹415'
+                            }
+                          </span>
+                          {selectedProduct === product.id && (
+                            <CheckCircle className="w-4 h-4 text-purple-400" />
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <span className={`text-lg font-bold ${selectedProduct === product.id ? 'text-purple-300' : 'text-green-400'}`}>
-                          {(() => {
-                            const priceData = productPrices.get(product.id);
-                            if (priceData) {
-                              return `₹${priceData.inrCost}`;
-                            }
-                            return '₹415'; // Default price
-                          })()}
-                        </span>
-                        {selectedProduct === product.id && (
-                          <CheckCircle className="w-4 h-4 text-purple-400" />
-                        )}
-                      </div>
-                    </div>
-                    <div className="mt-2 text-xs text-gray-400">
-                      {(() => {
-                        const priceData = productPrices.get(product.id);
-                        if (priceData && priceData.count > 0) {
-                          return `${priceData.count} available`;
+                      <div className="mt-2 text-xs text-gray-400">
+                        {realService && realService.realTimeData ? 
+                          `${realService.realTimeData.count} available` : 
+                          priceData && priceData.count > 0 ? `${priceData.count} available` : '1 available'
                         }
-                        return '1 available';
-                      })()}
+                      </div>
+                      {/* Real-time availability indicator */}
+                      {realService && realService.realTimeData && (
+                        <div className="mt-2 flex items-center space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${realService.realTimeData.available ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                          <span className={`text-xs ${realService.realTimeData.available ? 'text-green-400' : 'text-red-400'}`}>
+                            {realService.realTimeData.available ? 'Live' : 'Unavailable'}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : searchQuery ? (
                 <div className="text-center py-8">
                   <p className="text-gray-400 text-sm">No products found for "{searchQuery}"</p>
@@ -505,7 +705,9 @@ function App() {
               <span className="font-medium">Available Services:</span>
               {selectedCountry === 'usa' 
                 ? ' Facebook, Google, Virtual services (Free numbers available)'
-                : ' Jio Mart, Zomato, Swiggy, Ola, Uber, Paytm (Free numbers available)'
+                : selectedProvider === 'sms-activate' 
+                  ? ' Real Indian services with live pricing and availability'
+                  : ' Jio Mart, Zomato, Swiggy, Ola, Uber, Paytm (Free numbers available)'
               }
             </div>
           </div>
@@ -580,7 +782,7 @@ function App() {
                       </button>
                     </div>
                     <div className="flex items-center space-x-2 mt-1">
-                      <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">5sim</span>
+                      <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">{selectedProvider}</span>
                       <span className="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
                         {apiProducts.find(p => p.id === selectedProduct)?.name || selectedProduct || 'general'}
                       </span>
